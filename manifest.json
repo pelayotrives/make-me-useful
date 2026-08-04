@@ -27,8 +27,7 @@
     "declarativeNetRequest",
     "offscreen",
     "storage",
-    "tabs",
-    "webNavigation"
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"

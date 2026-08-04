@@ -35,14 +35,17 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  enforceTabById(activeInfo.tabId);
+  safelyEnforceTabById(activeInfo.tabId);
 });
 
-chrome.webNavigation.onCommitted.addListener((details) => {
-  if (details.frameId !== 0) {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!tab.active) {
     return;
   }
-  enforceTabById(details.tabId);
+  if (!changeInfo.url && changeInfo.status !== "loading" && changeInfo.status !== "complete") {
+    return;
+  }
+  safelyEnforceTabById(tabId);
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -295,6 +298,10 @@ async function enforceActiveTab() {
   if (tabs[0] && tabs[0].id) {
     await enforceTabById(tabs[0].id);
   }
+}
+
+function safelyEnforceTabById(tabId) {
+  enforceTabById(tabId).catch(() => {});
 }
 
 async function enforceTabById(tabId) {
