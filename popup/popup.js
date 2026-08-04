@@ -41,6 +41,18 @@ const elements = {
 let currentState = null;
 let refreshTimer = null;
 let resetChallengeValue = "";
+const RESET_PASSAGE_PARTS = [
+  "The room was still except for the small machinery of thought, the private clicking that begins when a person decides to stay.",
+  "Outside, the day kept offering exits, errands, and brighter distractions, yet the desk remained like a harbor that had chosen a name for the weather.",
+  "A page does not ask for courage all at once; it only asks for the next sentence, then the next, until resistance grows embarrassed by its own performance.",
+  "Attention is rarely dramatic at first. It gathers by degrees, like lamps waking one window at a time along a street that had seemed abandoned.",
+  "There is a stubborn kind of peace in continuing, in letting the hour become specific, in refusing to negotiate every minute with the easier impulse.",
+  "Work deepens when the mind stops auditioning alternatives and begins carrying one honest thought far enough to hear its hidden structure.",
+  "Even impatience grows tired if it is made to sit still long enough beside the thing it keeps trying to avoid.",
+  "The best progress is often quiet, almost unphotogenic, made of steady returns that look ordinary until they have built a different day.",
+  "A focused block is not a prison so much as a promise with the doors temporarily closed, a way of proving that intention can survive mood.",
+  "When the noise thins out, small details begin to arrive with dignity, and the task that felt blunt and heavy starts showing edges, texture, and light.",
+];
 
 start();
 
@@ -54,6 +66,9 @@ async function start() {
   elements.reset.addEventListener("click", resetSession);
   elements.test.addEventListener("click", testResetSession);
   elements.resetChallengeInput.addEventListener("input", syncResetGateState);
+  elements.resetChallengeInput.addEventListener("paste", blockManualPaste);
+  elements.resetChallengeInput.addEventListener("drop", blockManualPaste);
+  elements.resetChallengeInput.addEventListener("keydown", blockPasteShortcut);
   elements.confirmReset.addEventListener("click", confirmResetSession);
   elements.cancelReset.addEventListener("click", closeResetGate);
   renderSchedule();
@@ -312,8 +327,25 @@ function syncResetGateState() {
 }
 
 function generateResetChallenge(length) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%&*+-_=?:";
-  const bytes = new Uint32Array(length);
+  const bytes = new Uint32Array(RESET_PASSAGE_PARTS.length * 2);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
+  let text = "";
+
+  for (let index = 0; text.length < length + 80; index += 1) {
+    const part = RESET_PASSAGE_PARTS[bytes[index % bytes.length] % RESET_PASSAGE_PARTS.length];
+    text += `${text ? " " : ""}${part}`;
+  }
+
+  return text.slice(0, length).trim();
+}
+
+function blockManualPaste(event) {
+  event.preventDefault();
+}
+
+function blockPasteShortcut(event) {
+  const key = event.key.toLowerCase();
+  if ((event.metaKey || event.ctrlKey) && key === "v") {
+    event.preventDefault();
+  }
 }

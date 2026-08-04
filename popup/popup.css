@@ -9,8 +9,16 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; width: 380px; min-width: 380px; background: var(--paper); color: var(--ink); font-family: Arial, sans-serif; }
+html, body {
+  margin: 0;
+  width: 380px;
+  min-width: 380px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "SFMono-Regular", "Cascadia Code", "IBM Plex Mono", "Fira Code", "Menlo", "Consolas", monospace;
+}
 body { min-height: 100vh; }
+[hidden] { display: none !important; }
 button, input, textarea, select { font: inherit; }
 button, select, textarea { color: var(--ink); }
 button { cursor: pointer; }
@@ -38,9 +46,10 @@ select, textarea { border: 1px solid var(--line); border-radius: var(--small-rad
 .schedule-row select { width: 100%; padding: 7px 24px 7px 8px; font-size: 11px; }
 .helper-text { margin-top: 12px; color: var(--ink); font-size: 10px; line-height: 1.45; }
 .field-label { margin-bottom: 6px; }
-.reset-gate { display: grid; gap: 10px; }
+.reset-gate { display: grid; gap: 8px; }
 .reset-gate__heading { margin-bottom: 0; }
 .reset-gate__actions { margin-top: 2px; }
+.reset-gate .field-label { margin-bottom: 0; }
 .reset-challenge {
   display: block;
   padding: 12px 14px;
@@ -48,11 +57,10 @@ select, textarea { border: 1px solid var(--line); border-radius: var(--small-rad
   border-radius: 14px;
   background: rgba(146, 20, 12, 0.05);
   color: var(--signal);
-  font-family: "Courier New", monospace;
   font-size: 11px;
   line-height: 1.45;
   overflow-wrap: anywhere;
-  user-select: all;
+  user-select: none;
 }
 .mode-picker { display: flex; gap: 8px; margin-bottom: 12px; }
 .mode-chip { position: relative; display: inline-flex; align-items: center; }
