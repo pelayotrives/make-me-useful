@@ -87,13 +87,17 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
 .button__fill {
   position: absolute;
   inset: 0 auto 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 0;
   background: var(--signal);
   transition: width 120ms linear;
-  z-index: -1;
+  z-index: 0;
+  white-space: nowrap;
 }
 .button__label { position: relative; z-index: 1; }
-.button--secondary.is-holding[data-progress="covered"] { color: var(--paper); }
+.button__label--inverse { color: var(--paper); }
 .footer { margin-top: 2px; color: var(--ink); text-align: center; font-size: 9px; }
 .footer hr { margin: 0 0 10px; border: 0; border-top: 1px solid var(--line); }
 .footer p + p { margin-top: 3px; }

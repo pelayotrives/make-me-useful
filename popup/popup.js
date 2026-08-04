@@ -24,6 +24,7 @@ const elements = {
   resetHint: document.querySelector("#resetHint"),
   resetHoldFill: document.querySelector("#resetHoldFill"),
   resetButtonLabel: document.querySelector("#resetButtonLabel"),
+  resetButtonLabelInverse: document.querySelector("#resetButtonLabelInverse"),
   atomic: document.querySelector("#atomicToggle"),
   atomicMessage: document.querySelector("#atomicMessage"),
   start: document.querySelector("#startButton"),
@@ -291,6 +292,7 @@ function beginResetHold(event) {
   holdStartAt = Date.now();
   elements.reset.classList.add("is-holding");
   elements.resetButtonLabel.textContent = "Keep holding...";
+  elements.resetButtonLabelInverse.textContent = "Keep holding...";
   holdTimer = window.setInterval(checkResetHoldProgress, 80);
 }
 
@@ -302,8 +304,8 @@ function cancelResetHold() {
   holdStartAt = 0;
   updateHoldResetProgress(0);
   elements.reset.classList.remove("is-holding");
-  elements.reset.dataset.progress = "idle";
   elements.resetButtonLabel.textContent = "Reset";
+  elements.resetButtonLabelInverse.textContent = "Reset";
 }
 
 function checkResetHoldProgress() {
@@ -322,5 +324,4 @@ async function finishResetHold() {
 
 function updateHoldResetProgress(progress) {
   elements.resetHoldFill.style.width = `${progress * 100}%`;
-  elements.reset.dataset.progress = progress >= 0.42 ? "covered" : "idle";
 }
