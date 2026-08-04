@@ -20,8 +20,7 @@
     "128": "icons/icon-128.png"
   },
   "background": {
-    "service_worker": "service-worker.js",
-    "type": "module"
+    "service_worker": "service-worker.js"
   },
   "permissions": [
     "alarms",

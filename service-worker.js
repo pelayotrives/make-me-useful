@@ -1,8 +1,6 @@
 const STATE_KEY = "make_me_useful_state";
 const BLOCK_RULE_START = 1000;
 const ALARM_NAME = "make-me-useful-phase-end";
-const OFFSCREEN_DOCUMENT_PATH = "audio/offscreen.html";
-const BLOCKED_PAGE_PATH = "blocked/index.html";
 const MAX_ROUNDS = 4;
 
 const DEFAULT_CONFIG = {
@@ -29,13 +27,10 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-chrome.runtime.onStartup.addListener(() => syncState());
-chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
-  if (details.frameId !== 0 || !details.url?.startsWith("http")) {
-    return;
-  }
-  await enforceBlockedNavigation(details.tabId, details.url);
+chrome.runtime.onStartup.addListener(() => {
+  syncState();
 });
+
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) {
     syncState();
@@ -43,9 +38,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.target === "offscreen") {
-    return false;
-  }
   handleMessage(message).then(sendResponse).catch((error) => {
     sendResponse({ error: error.message || "Unable to update the timer." });
   });
@@ -53,13 +45,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function handleMessage(message) {
-  switch (message?.type) {
+  switch (message && message.type) {
     case "get-state":
       return syncState();
     case "start-session":
       return startSession(message.config);
     case "reset-session":
-      return resetSession();
     case "test-reset-session":
       return resetSession();
     default:
@@ -73,7 +64,7 @@ async function readState() {
 }
 
 function normalizeState(value) {
-  const config = normalizeConfig(value?.config);
+  const config = normalizeConfig(value && value.config);
   return {
     ...IDLE_STATE,
     ...value,
@@ -94,11 +85,11 @@ function normalizeConfig(value) {
 
 function normalizeDurationList(secondsValues, legacyMinuteValues, fallback, minimum, maximum) {
   return Array.from({ length: MAX_ROUNDS }, (_, index) => {
-    const secondsValue = Number(secondsValues?.[index]);
+    const secondsValue = Number(secondsValues && secondsValues[index]);
     if (Number.isFinite(secondsValue)) {
       return clamp(secondsValue, minimum, maximum);
     }
-    const legacyMinutes = Number(legacyMinuteValues?.[index]);
+    const legacyMinutes = Number(legacyMinuteValues && legacyMinuteValues[index]);
     if (Number.isFinite(legacyMinutes)) {
       return clamp(legacyMinutes * 60, minimum, maximum);
     }
@@ -107,7 +98,8 @@ function normalizeDurationList(secondsValues, legacyMinuteValues, fallback, mini
 }
 
 function normalizeDomains(domains) {
-  return [...new Set((Array.isArray(domains) ? domains : [])
+  const list = Array.isArray(domains) ? domains : [];
+  return [...new Set(list
     .map((domain) => String(domain).trim().toLowerCase()
       .replace(/^https?:\/\//, "")
       .replace(/^\*\./, "")
@@ -129,7 +121,7 @@ async function syncState() {
 
   let nextState = state;
   while (nextState.running && Date.now() >= nextState.phaseEndsAt) {
-    nextState = await advancePhase(nextState, { notify: Date.now() - nextState.phaseEndsAt < 5000 });
+    nextState = await advancePhase(nextState);
   }
   await persistState(nextState);
   return nextState;
@@ -148,7 +140,6 @@ async function startSession(rawConfig) {
   const config = normalizeConfig(rawConfig);
   const phases = buildPhases(config);
   const now = Date.now();
-  await prepareAudio();
   const state = {
     running: true,
     phaseIndex: 0,
@@ -159,7 +150,6 @@ async function startSession(rawConfig) {
   };
   await persistState(state);
   await applyBlockingRules(config);
-  await redirectBlockedTabs(config);
   await schedulePhaseEnd(state.phaseEndsAt);
   return state;
 }
@@ -172,17 +162,13 @@ async function resetSession() {
   return state;
 }
 
-async function advancePhase(state, { notify }) {
+async function advancePhase(state) {
   const phases = buildPhases(state.config);
-  const completedPhase = phases[state.phaseIndex];
   const nextIndex = state.phaseIndex + 1;
 
   if (nextIndex >= phases.length) {
     await clearBlockingRules();
     await chrome.alarms.clear(ALARM_NAME);
-    if (notify) {
-      await playCue("session-complete");
-    }
     return {
       ...state,
       running: false,
@@ -191,10 +177,6 @@ async function advancePhase(state, { notify }) {
       phaseStartedAt: 0,
       phaseEndsAt: 0,
     };
-  }
-
-  if (notify) {
-    await playCue(completedPhase.type === "study" ? "study-complete" : "break-complete");
   }
 
   const now = Date.now();
@@ -208,7 +190,6 @@ async function advancePhase(state, { notify }) {
 
   if (nextPhase.type === "study") {
     await applyBlockingRules(state.config);
-    await redirectBlockedTabs(state.config);
   } else {
     await clearBlockingRules();
   }
@@ -225,46 +206,27 @@ async function schedulePhaseEnd(timestamp) {
   await chrome.alarms.create(ALARM_NAME, { when: timestamp });
 }
 
-async function playCue(cue) {
-  const ready = await prepareAudio();
-  if (!ready) {
-    return;
-  }
-  await chrome.runtime.sendMessage({ target: "offscreen", type: "play-sound", cue });
-}
-
-async function prepareAudio() {
-  if (!chrome.offscreen?.createDocument) {
-    return false;
-  }
-  const url = chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH);
-  const contexts = await chrome.runtime.getContexts({
-    contextTypes: ["OFFSCREEN_DOCUMENT"],
-    documentUrls: [url],
-  });
-  if (contexts.length === 0) {
-    await chrome.offscreen.createDocument({
-      url: OFFSCREEN_DOCUMENT_PATH,
-      reasons: ["AUDIO_PLAYBACK"],
-      justification: "Play session transition sounds when the popup is closed.",
-    });
-  }
-  const response = await chrome.runtime.sendMessage({ target: "offscreen", type: "prime-audio" }).catch(() => ({ ok: false }));
-  return Boolean(response?.ok);
-}
-
 async function applyBlockingRules(config) {
   await clearBlockingRules();
   const rules = config.atomic
-    ? [{ id: BLOCK_RULE_START, priority: 10, action: { type: "block" }, condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] } }]
+    ? [{
+      id: BLOCK_RULE_START,
+      priority: 10,
+      action: { type: "block" },
+      condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+    }]
     : config.domains.map((domain, index) => ({
       id: BLOCK_RULE_START + index,
       priority: 10,
       action: { type: "block" },
-      condition: { urlFilter: `||${domain}/`, resourceTypes: ["main_frame", "sub_frame"] },
+      condition: { urlFilter: `||${domain}/`, resourceTypes: ["main_frame"] },
     }));
+
   if (rules.length > 0) {
-    await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules, removeRuleIds: [] });
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [],
+      addRules: rules,
+    });
   }
 }
 
@@ -273,57 +235,11 @@ async function clearBlockingRules() {
   const removeRuleIds = existing
     .filter((rule) => rule.id >= BLOCK_RULE_START && rule.id < BLOCK_RULE_START + 100)
     .map((rule) => rule.id);
+
   if (removeRuleIds.length > 0) {
-    await chrome.declarativeNetRequest.updateDynamicRules({ addRules: [], removeRuleIds });
-  }
-}
-
-async function enforceBlockedNavigation(tabId, url) {
-  const state = await readState();
-  if (!state.running || !isStudyState(state)) {
-    return;
-  }
-  if (!shouldBlockUrl(url, state.config)) {
-    return;
-  }
-  await chrome.tabs.update(tabId, {
-    url: `${chrome.runtime.getURL(BLOCKED_PAGE_PATH)}?url=${encodeURIComponent(url)}`,
-  });
-}
-
-async function redirectBlockedTabs(config) {
-  const tabs = await chrome.tabs.query({});
-  await Promise.all(tabs.map(async (tab) => {
-    if (!tab.id || !tab.url?.startsWith("http")) {
-      return;
-    }
-    if (!shouldBlockUrl(tab.url, config)) {
-      return;
-    }
-    await chrome.tabs.update(tab.id, {
-      url: `${chrome.runtime.getURL(BLOCKED_PAGE_PATH)}?url=${encodeURIComponent(tab.url)}`,
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds,
+      addRules: [],
     });
-  }));
-}
-
-function shouldBlockUrl(url, config) {
-  if (config.atomic) {
-    return /^https?:\/\//.test(url);
   }
-  return config.domains.some((domain) => matchesDomain(url, domain));
-}
-
-function matchesDomain(url, domain) {
-  try {
-    const host = new URL(url).hostname.toLowerCase();
-    return host === domain || host.endsWith(`.${domain}`);
-  } catch {
-    return false;
-  }
-}
-
-function isStudyState(state) {
-  const phases = buildPhases(state.config);
-  const currentPhase = phases[state.phaseIndex];
-  return currentPhase?.type === "study";
 }

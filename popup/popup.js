@@ -133,23 +133,37 @@ function readConfig() {
 }
 
 async function startSession() {
-  const response = await chrome.runtime.sendMessage({ type: "start-session", config: readConfig() });
-  applyState(response, true);
+  await sendAction({ type: "start-session", config: readConfig() });
 }
 
 async function resetSession() {
-  const response = await chrome.runtime.sendMessage({ type: "reset-session" });
-  applyState(response, true);
+  await sendAction({ type: "reset-session" });
 }
 
 async function testResetSession() {
-  const response = await chrome.runtime.sendMessage({ type: "test-reset-session" });
-  applyState(response, true);
+  await sendAction({ type: "test-reset-session" });
 }
 
 async function refreshState() {
-  const response = await chrome.runtime.sendMessage({ type: "get-state" });
-  applyState(response);
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "get-state" });
+    applyState(response);
+  } catch (error) {
+    elements.hint.textContent = error.message || "The extension background worker is not responding.";
+  }
+}
+
+async function sendAction(message) {
+  try {
+    const response = await chrome.runtime.sendMessage(message);
+    if (response && response.error) {
+      elements.hint.textContent = response.error;
+      return;
+    }
+    applyState(response, true);
+  } catch (error) {
+    elements.hint.textContent = error.message || "The extension background worker is not responding.";
+  }
 }
 
 function applyState(state, forceFormSync = false) {
