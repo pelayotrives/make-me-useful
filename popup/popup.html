@@ -73,25 +73,12 @@
 
       <section class="actions" aria-label="Session actions">
         <button id="startButton" class="button button--primary" type="button">Start session</button>
-        <button id="resetButton" class="button button--secondary" type="button">Reset</button>
+        <button id="resetButton" class="button button--secondary" type="button">
+          <span id="resetHoldFill" class="button__fill" aria-hidden="true"></span>
+          <span id="resetButtonLabel" class="button__label">Reset</span>
+        </button>
       </section>
-
-      <section id="resetGate" class="panel reset-gate" hidden aria-labelledby="resetGateTitle">
-        <div class="section-heading reset-gate__heading">
-          <div>
-            <p class="eyebrow">03 &gt; Reset gate</p>
-            <h2 id="resetGateTitle">Hold the button for 15 seconds to reset</h2>
-          </div>
-        </div>
-        <p class="helper-text">Keep pressing if you really want to abandon the current session.</p>
-        <section class="actions reset-gate__actions" aria-label="Reset confirmation">
-          <button id="holdResetButton" class="button button--danger" type="button">
-            <span id="holdResetFill" class="button__fill" aria-hidden="true"></span>
-            <span id="holdResetLabel" class="button__label">Hold to reset</span>
-          </button>
-          <button id="cancelResetButton" class="button button--secondary" type="button">Cancel</button>
-        </section>
-      </section>
+      <p id="resetHint" class="helper-text helper-text--actions" hidden>Hold Reset for 15 seconds to abandon the current session.</p>
 
       <section class="test-actions" aria-label="Testing actions">
         <button id="testButton" class="button button--test" type="button">TEST</button>

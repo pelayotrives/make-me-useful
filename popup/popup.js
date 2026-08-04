@@ -21,11 +21,9 @@ const elements = {
   allowMode: document.querySelector("#allowMode"),
   blockField: document.querySelector("#blockField"),
   allowField: document.querySelector("#allowField"),
-  resetGate: document.querySelector("#resetGate"),
-  holdReset: document.querySelector("#holdResetButton"),
-  holdResetFill: document.querySelector("#holdResetFill"),
-  holdResetLabel: document.querySelector("#holdResetLabel"),
-  cancelReset: document.querySelector("#cancelResetButton"),
+  resetHint: document.querySelector("#resetHint"),
+  resetHoldFill: document.querySelector("#resetHoldFill"),
+  resetButtonLabel: document.querySelector("#resetButtonLabel"),
   atomic: document.querySelector("#atomicToggle"),
   atomicMessage: document.querySelector("#atomicMessage"),
   start: document.querySelector("#startButton"),
@@ -53,13 +51,12 @@ async function start() {
   elements.blockMode.addEventListener("change", handleGuardModeChange);
   elements.allowMode.addEventListener("change", handleGuardModeChange);
   elements.start.addEventListener("click", startSession);
-  elements.reset.addEventListener("click", resetSession);
+  elements.reset.addEventListener("pointerdown", beginResetHold);
+  elements.reset.addEventListener("pointerup", cancelResetHold);
+  elements.reset.addEventListener("pointerleave", cancelResetHold);
+  elements.reset.addEventListener("pointercancel", cancelResetHold);
+  elements.reset.addEventListener("click", interceptResetClick);
   elements.test.addEventListener("click", testResetSession);
-  elements.holdReset.addEventListener("pointerdown", beginResetHold);
-  elements.holdReset.addEventListener("pointerup", cancelResetHold);
-  elements.holdReset.addEventListener("pointerleave", cancelResetHold);
-  elements.holdReset.addEventListener("pointercancel", cancelResetHold);
-  elements.cancelReset.addEventListener("click", closeResetGate);
   renderSchedule();
   await refreshState();
   refreshTimer = window.setInterval(refreshState, 1000);
@@ -121,8 +118,9 @@ function syncConfigurationState() {
   elements.reset.disabled = false;
   elements.test.disabled = false;
   elements.start.textContent = running ? "Session running" : "Start session";
+  elements.resetHint.hidden = !running;
   if (!running) {
-    closeResetGate();
+    cancelResetHold();
   }
 }
 
@@ -188,16 +186,8 @@ async function startSession() {
   await sendAction({ type: "start-session", config: readConfig() });
 }
 
-async function resetSession() {
-  if (currentState?.running) {
-    openResetGate();
-    return;
-  }
-  await sendAction({ type: "reset-session" });
-}
-
 async function testResetSession() {
-  closeResetGate();
+  cancelResetHold();
   await sendAction({ type: "test-reset-session" });
 }
 
@@ -285,15 +275,12 @@ function parseDomainsInput(value) {
     .filter(Boolean);
 }
 
-function openResetGate() {
-  elements.resetGate.hidden = false;
-  updateHoldResetProgress(0);
-  elements.hint.textContent = "Hold the reset button for 15 seconds if you really want to abort this session.";
-}
-
-function closeResetGate() {
-  cancelResetHold();
-  elements.resetGate.hidden = true;
+function interceptResetClick(event) {
+  if (currentState?.running) {
+    event.preventDefault();
+    return;
+  }
+  sendAction({ type: "reset-session" });
 }
 
 function beginResetHold(event) {
@@ -302,9 +289,8 @@ function beginResetHold(event) {
     return;
   }
   holdStartAt = Date.now();
-  elements.holdReset.setPointerCapture?.(event.pointerId);
-  elements.holdReset.classList.add("is-holding");
-  elements.holdResetLabel.textContent = "Keep holding...";
+  elements.reset.classList.add("is-holding");
+  elements.resetButtonLabel.textContent = "Keep holding...";
   holdTimer = window.setInterval(checkResetHoldProgress, 80);
 }
 
@@ -315,8 +301,8 @@ function cancelResetHold() {
   }
   holdStartAt = 0;
   updateHoldResetProgress(0);
-  elements.holdReset.classList.remove("is-holding");
-  elements.holdResetLabel.textContent = "Hold to reset";
+  elements.reset.classList.remove("is-holding");
+  elements.resetButtonLabel.textContent = "Reset";
 }
 
 function checkResetHoldProgress() {
@@ -330,10 +316,9 @@ function checkResetHoldProgress() {
 
 async function finishResetHold() {
   cancelResetHold();
-  closeResetGate();
   await sendAction({ type: "reset-session" });
 }
 
 function updateHoldResetProgress(progress) {
-  elements.holdResetFill.style.width = `${progress * 100}%`;
+  elements.resetHoldFill.style.width = `${progress * 100}%`;
 }

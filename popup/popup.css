@@ -46,9 +46,6 @@ select, textarea { border: 1px solid var(--line); border-radius: var(--small-rad
 .schedule-row select { width: 100%; padding: 7px 24px 7px 8px; font-size: 11px; }
 .helper-text { margin-top: 12px; color: var(--ink); font-size: 10px; line-height: 1.45; }
 .field-label { margin-bottom: 6px; }
-.reset-gate { display: grid; gap: 8px; }
-.reset-gate__heading { margin-bottom: 0; }
-.reset-gate__actions { margin-top: 2px; }
 .mode-picker { display: flex; gap: 8px; margin-bottom: 12px; }
 .mode-chip { position: relative; display: inline-flex; align-items: center; }
 .mode-chip input { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -80,12 +77,12 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
 #atomicMessage { display: none; color: var(--signal); font-weight: 700; }
 #atomicMessage:not([hidden]) { display: block; }
 .actions { justify-content: stretch; }
+.helper-text--actions { margin-top: -6px; text-align: center; color: var(--signal); }
 .test-actions { display: flex; }
 .button { position: relative; isolation: isolate; overflow: hidden; flex: 1; min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 700; transition: transform 140ms ease, background 140ms ease, color 140ms ease; }
 .button:hover:not(:disabled) { transform: translateY(-1px); }
 .button--primary { border-color: var(--signal); background: var(--signal); color: var(--paper); }
 .button--secondary { background: var(--paper); color: var(--signal); }
-.button--danger { border-color: var(--signal); background: rgba(146, 20, 12, 0.08); color: var(--signal); }
 .button--test { background: rgba(146, 20, 12, 0.08); color: var(--signal); }
 .button__fill {
   position: absolute;
@@ -96,7 +93,7 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
   z-index: -1;
 }
 .button__label { position: relative; z-index: 1; }
-.button--danger.is-holding { color: var(--paper); }
+.button--secondary.is-holding { color: var(--paper); }
 .footer { margin-top: 2px; color: var(--ink); text-align: center; font-size: 9px; }
 .footer hr { margin: 0 0 10px; border: 0; border-top: 1px solid var(--line); }
 .footer p + p { margin-top: 3px; }
