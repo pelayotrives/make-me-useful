@@ -336,7 +336,10 @@ function generateResetChallenge(length) {
     text += `${text ? " " : ""}${part}`;
   }
 
-  return text.slice(0, length).trim();
+  const clipped = text.slice(0, length);
+  const lastBoundary = Math.max(clipped.lastIndexOf("."), clipped.lastIndexOf("!"), clipped.lastIndexOf("?"), clipped.lastIndexOf(" "));
+  const safeText = (lastBoundary > 120 ? clipped.slice(0, lastBoundary) : clipped).trim().replace(/[,:;]+$/, "");
+  return `${safeText.replace(/[.!?]*$/, "")}.`;
 }
 
 function blockManualPaste(event) {
