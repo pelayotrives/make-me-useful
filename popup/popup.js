@@ -302,6 +302,7 @@ function cancelResetHold() {
   holdStartAt = 0;
   updateHoldResetProgress(0);
   elements.reset.classList.remove("is-holding");
+  elements.reset.dataset.progress = "idle";
   elements.resetButtonLabel.textContent = "Reset";
 }
 
@@ -321,4 +322,5 @@ async function finishResetHold() {
 
 function updateHoldResetProgress(progress) {
   elements.resetHoldFill.style.width = `${progress * 100}%`;
+  elements.reset.dataset.progress = progress >= 0.42 ? "covered" : "idle";
 }

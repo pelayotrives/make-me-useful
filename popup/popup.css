@@ -93,7 +93,7 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
   z-index: -1;
 }
 .button__label { position: relative; z-index: 1; }
-.button--secondary.is-holding { color: var(--paper); }
+.button--secondary.is-holding[data-progress="covered"] { color: var(--paper); }
 .footer { margin-top: 2px; color: var(--ink); text-align: center; font-size: 9px; }
 .footer hr { margin: 0 0 10px; border: 0; border-top: 1px solid var(--line); }
 .footer p + p { margin-top: 3px; }
