@@ -10,6 +10,7 @@ const DEFAULT_CONFIG = {
 };
 
 const TEST_DURATION_SECONDS = 1;
+const RESET_HOLD_MS = 15000;
 
 const elements = {
   rounds: document.querySelector("#roundsSelect"),
@@ -21,9 +22,9 @@ const elements = {
   blockField: document.querySelector("#blockField"),
   allowField: document.querySelector("#allowField"),
   resetGate: document.querySelector("#resetGate"),
-  resetChallenge: document.querySelector("#resetChallenge"),
-  resetChallengeInput: document.querySelector("#resetChallengeInput"),
-  confirmReset: document.querySelector("#confirmResetButton"),
+  holdReset: document.querySelector("#holdResetButton"),
+  holdResetFill: document.querySelector("#holdResetFill"),
+  holdResetLabel: document.querySelector("#holdResetLabel"),
   cancelReset: document.querySelector("#cancelResetButton"),
   atomic: document.querySelector("#atomicToggle"),
   atomicMessage: document.querySelector("#atomicMessage"),
@@ -40,19 +41,8 @@ const elements = {
 
 let currentState = null;
 let refreshTimer = null;
-let resetChallengeValue = "";
-const RESET_PASSAGE_PARTS = [
-  "The room was still except for the small machinery of thought, the private clicking that begins when a person decides to stay.",
-  "Outside, the day kept offering exits, errands, and brighter distractions, yet the desk remained like a harbor that had chosen a name for the weather.",
-  "A page does not ask for courage all at once; it only asks for the next sentence, then the next, until resistance grows embarrassed by its own performance.",
-  "Attention is rarely dramatic at first. It gathers by degrees, like lamps waking one window at a time along a street that had seemed abandoned.",
-  "There is a stubborn kind of peace in continuing, in letting the hour become specific, in refusing to negotiate every minute with the easier impulse.",
-  "Work deepens when the mind stops auditioning alternatives and begins carrying one honest thought far enough to hear its hidden structure.",
-  "Even impatience grows tired if it is made to sit still long enough beside the thing it keeps trying to avoid.",
-  "The best progress is often quiet, almost unphotogenic, made of steady returns that look ordinary until they have built a different day.",
-  "A focused block is not a prison so much as a promise with the doors temporarily closed, a way of proving that intention can survive mood.",
-  "When the noise thins out, small details begin to arrive with dignity, and the task that felt blunt and heavy starts showing edges, texture, and light.",
-];
+let holdStartAt = 0;
+let holdTimer = null;
 
 start();
 
@@ -65,11 +55,10 @@ async function start() {
   elements.start.addEventListener("click", startSession);
   elements.reset.addEventListener("click", resetSession);
   elements.test.addEventListener("click", testResetSession);
-  elements.resetChallengeInput.addEventListener("input", syncResetGateState);
-  elements.resetChallengeInput.addEventListener("paste", blockManualPaste);
-  elements.resetChallengeInput.addEventListener("drop", blockManualPaste);
-  elements.resetChallengeInput.addEventListener("keydown", blockPasteShortcut);
-  elements.confirmReset.addEventListener("click", confirmResetSession);
+  elements.holdReset.addEventListener("pointerdown", beginResetHold);
+  elements.holdReset.addEventListener("pointerup", cancelResetHold);
+  elements.holdReset.addEventListener("pointerleave", cancelResetHold);
+  elements.holdReset.addEventListener("pointercancel", cancelResetHold);
   elements.cancelReset.addEventListener("click", closeResetGate);
   renderSchedule();
   await refreshState();
@@ -212,15 +201,6 @@ async function testResetSession() {
   await sendAction({ type: "test-reset-session" });
 }
 
-async function confirmResetSession() {
-  if (elements.resetChallengeInput.value !== resetChallengeValue) {
-    elements.hint.textContent = "The reset string does not match yet.";
-    return;
-  }
-  closeResetGate();
-  await sendAction({ type: "reset-session" });
-}
-
 async function refreshState() {
   try {
     const response = await chrome.runtime.sendMessage({ type: "get-state" });
@@ -306,49 +286,54 @@ function parseDomainsInput(value) {
 }
 
 function openResetGate() {
-  resetChallengeValue = generateResetChallenge(250);
   elements.resetGate.hidden = false;
-  elements.resetChallenge.textContent = resetChallengeValue;
-  elements.resetChallengeInput.value = "";
-  elements.hint.textContent = "Copy the full reset string if you really want to abort this session.";
-  syncResetGateState();
+  updateHoldResetProgress(0);
+  elements.hint.textContent = "Hold the reset button for 15 seconds if you really want to abort this session.";
 }
 
 function closeResetGate() {
-  resetChallengeValue = "";
+  cancelResetHold();
   elements.resetGate.hidden = true;
-  elements.resetChallenge.textContent = "";
-  elements.resetChallengeInput.value = "";
-  elements.confirmReset.disabled = true;
 }
 
-function syncResetGateState() {
-  elements.confirmReset.disabled = elements.resetChallengeInput.value !== resetChallengeValue || resetChallengeValue.length === 0;
-}
-
-function generateResetChallenge(length) {
-  const bytes = new Uint32Array(RESET_PASSAGE_PARTS.length * 2);
-  crypto.getRandomValues(bytes);
-  let text = "";
-
-  for (let index = 0; text.length < length + 80; index += 1) {
-    const part = RESET_PASSAGE_PARTS[bytes[index % bytes.length] % RESET_PASSAGE_PARTS.length];
-    text += `${text ? " " : ""}${part}`;
-  }
-
-  const clipped = text.slice(0, length);
-  const lastBoundary = Math.max(clipped.lastIndexOf("."), clipped.lastIndexOf("!"), clipped.lastIndexOf("?"), clipped.lastIndexOf(" "));
-  const safeText = (lastBoundary > 120 ? clipped.slice(0, lastBoundary) : clipped).trim().replace(/[,:;]+$/, "");
-  return `${safeText.replace(/[.!?]*$/, "")}.`;
-}
-
-function blockManualPaste(event) {
+function beginResetHold(event) {
   event.preventDefault();
+  if (!currentState?.running || holdTimer) {
+    return;
+  }
+  holdStartAt = Date.now();
+  elements.holdReset.setPointerCapture?.(event.pointerId);
+  elements.holdReset.classList.add("is-holding");
+  elements.holdResetLabel.textContent = "Keep holding...";
+  holdTimer = window.setInterval(checkResetHoldProgress, 80);
 }
 
-function blockPasteShortcut(event) {
-  const key = event.key.toLowerCase();
-  if ((event.metaKey || event.ctrlKey) && key === "v") {
-    event.preventDefault();
+function cancelResetHold() {
+  if (holdTimer) {
+    window.clearInterval(holdTimer);
+    holdTimer = null;
   }
+  holdStartAt = 0;
+  updateHoldResetProgress(0);
+  elements.holdReset.classList.remove("is-holding");
+  elements.holdResetLabel.textContent = "Hold to reset";
+}
+
+function checkResetHoldProgress() {
+  const elapsed = Date.now() - holdStartAt;
+  const progress = Math.max(0, Math.min(1, elapsed / RESET_HOLD_MS));
+  updateHoldResetProgress(progress);
+  if (progress >= 1) {
+    finishResetHold();
+  }
+}
+
+async function finishResetHold() {
+  cancelResetHold();
+  closeResetGate();
+  await sendAction({ type: "reset-session" });
+}
+
+function updateHoldResetProgress(progress) {
+  elements.holdResetFill.style.width = `${progress * 100}%`;
 }

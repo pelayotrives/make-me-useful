@@ -80,14 +80,15 @@
         <div class="section-heading reset-gate__heading">
           <div>
             <p class="eyebrow">03 &gt; Reset gate</p>
-            <h2 id="resetGateTitle">Type the full string to unlock reset</h2>
+            <h2 id="resetGateTitle">Hold the button for 15 seconds to reset</h2>
           </div>
         </div>
-        <code id="resetChallenge" class="reset-challenge"></code>
-        <label class="field-label" for="resetChallengeInput">Copy the text exactly</label>
-        <textarea id="resetChallengeInput" rows="4" placeholder="Type the full passage by hand"></textarea>
+        <p class="helper-text">Keep pressing if you really want to abandon the current session.</p>
         <section class="actions reset-gate__actions" aria-label="Reset confirmation">
-          <button id="confirmResetButton" class="button button--primary" type="button" disabled>Confirm reset</button>
+          <button id="holdResetButton" class="button button--danger" type="button">
+            <span id="holdResetFill" class="button__fill" aria-hidden="true"></span>
+            <span id="holdResetLabel" class="button__label">Hold to reset</span>
+          </button>
           <button id="cancelResetButton" class="button button--secondary" type="button">Cancel</button>
         </section>
       </section>
