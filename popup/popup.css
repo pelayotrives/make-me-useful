@@ -79,7 +79,7 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
 .actions { justify-content: stretch; }
 .helper-text--actions { margin-top: -6px; text-align: center; color: var(--signal); }
 .test-actions { display: flex; }
-.button { position: relative; isolation: isolate; overflow: hidden; flex: 1; min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 700; transition: transform 140ms ease, background 140ms ease, color 140ms ease; }
+.button { position: relative; display: flex; align-items: center; justify-content: center; isolation: isolate; overflow: hidden; flex: 1; min-height: 38px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; font-weight: 700; transition: transform 140ms ease, background 140ms ease, color 140ms ease; }
 .button:hover:not(:disabled) { transform: translateY(-1px); }
 .button--primary { border-color: var(--signal); background: var(--signal); color: var(--paper); }
 .button--secondary { background: var(--paper); color: var(--signal); }
@@ -87,17 +87,31 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
 .button__fill {
   position: absolute;
   inset: 0 auto 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 0;
   background: var(--signal);
   transition: width 120ms linear;
   z-index: 0;
-  white-space: nowrap;
 }
-.button__label { position: relative; z-index: 1; }
-.button__label--inverse { color: var(--paper); }
+.button__label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  white-space: nowrap;
+  color: transparent;
+  background-image: linear-gradient(
+    to right,
+    var(--paper) 0,
+    var(--paper) var(--hold-progress, 0%),
+    var(--signal) var(--hold-progress, 0%),
+    var(--signal) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .footer { margin-top: 2px; color: var(--ink); text-align: center; font-size: 9px; }
 .footer hr { margin: 0 0 10px; border: 0; border-top: 1px solid var(--line); }
 .footer p + p { margin-top: 3px; }
