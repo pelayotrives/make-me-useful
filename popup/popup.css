@@ -38,8 +38,28 @@ select, textarea { border: 1px solid var(--line); border-radius: var(--small-rad
 .schedule-row select { width: 100%; padding: 7px 24px 7px 8px; font-size: 11px; }
 .helper-text { margin-top: 12px; color: var(--ink); font-size: 10px; line-height: 1.45; }
 .field-label { margin-bottom: 6px; }
+.mode-picker { display: flex; gap: 8px; margin-bottom: 12px; }
+.mode-chip { position: relative; display: inline-flex; align-items: center; }
+.mode-chip input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.mode-chip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(146, 20, 12, 0.04);
+  color: var(--signal);
+  font-size: 11px;
+  font-weight: 700;
+}
+.mode-chip input:checked + span {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: var(--paper);
+}
 textarea { display: block; width: 100%; min-height: 70px; padding: 10px; resize: vertical; font-size: 12px; line-height: 1.45; }
-textarea::placeholder { color: var(--ink); }
+textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
 .switch-label { position: relative; }
 .switch-label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 .switch { position: relative; display: inline-block; width: 30px; height: 17px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); }

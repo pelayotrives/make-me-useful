@@ -8,6 +8,8 @@ const DEFAULT_CONFIG = {
   studySeconds: [1500, 1500, 1500, 1500],
   breakSeconds: [300, 300, 300, 300],
   domains: [],
+  allowedDomains: [],
+  domainMode: "block",
   atomic: false,
 };
 
@@ -79,6 +81,8 @@ function normalizeConfig(value) {
     studySeconds: normalizeDurationList(config.studySeconds, config.studyMinutes, DEFAULT_CONFIG.studySeconds, 1, 3600),
     breakSeconds: normalizeDurationList(config.breakSeconds, config.breakMinutes, DEFAULT_CONFIG.breakSeconds, 1, 1800),
     domains: normalizeDomains(config.domains),
+    allowedDomains: normalizeDomains(config.allowedDomains),
+    domainMode: config.domainMode === "allow" ? "allow" : "block",
     atomic: Boolean(config.atomic),
   };
 }
@@ -215,12 +219,14 @@ async function applyBlockingRules(config) {
       action: { type: "block" },
       condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
     }]
-    : config.domains.map((domain, index) => ({
-      id: BLOCK_RULE_START + index,
-      priority: 10,
-      action: { type: "block" },
-      condition: { urlFilter: `||${domain}/`, resourceTypes: ["main_frame"] },
-    }));
+    : config.domainMode === "allow"
+      ? buildAllowRules(config.allowedDomains)
+      : config.domains.map((domain, index) => ({
+        id: BLOCK_RULE_START + index,
+        priority: 10,
+        action: { type: "block" },
+        condition: { urlFilter: `||${domain}/`, resourceTypes: ["main_frame"] },
+      }));
 
   if (rules.length > 0) {
     await chrome.declarativeNetRequest.updateDynamicRules({
@@ -242,4 +248,30 @@ async function clearBlockingRules() {
       addRules: [],
     });
   }
+}
+
+function buildAllowRules(allowedDomains) {
+  if (allowedDomains.length === 0) {
+    return [{
+      id: BLOCK_RULE_START,
+      priority: 10,
+      action: { type: "block" },
+      condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+    }];
+  }
+
+  return [
+    ...allowedDomains.map((domain, index) => ({
+      id: BLOCK_RULE_START + index,
+      priority: 20,
+      action: { type: "allow" },
+      condition: { urlFilter: `||${domain}/`, resourceTypes: ["main_frame"] },
+    })),
+    {
+      id: BLOCK_RULE_START + 90,
+      priority: 10,
+      action: { type: "block" },
+      condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
+    },
+  ];
 }

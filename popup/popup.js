@@ -4,6 +4,8 @@ const DEFAULT_CONFIG = {
   studySeconds: [1500, 1500, 1500, 1500],
   breakSeconds: [300, 300, 300, 300],
   domains: [],
+  allowedDomains: [],
+  domainMode: "block",
   atomic: false,
 };
 
@@ -13,6 +15,11 @@ const elements = {
   rounds: document.querySelector("#roundsSelect"),
   schedule: document.querySelector("#scheduleRows"),
   domains: document.querySelector("#domainsInput"),
+  allowedDomains: document.querySelector("#allowedDomainsInput"),
+  blockMode: document.querySelector("#blockMode"),
+  allowMode: document.querySelector("#allowMode"),
+  blockField: document.querySelector("#blockField"),
+  allowField: document.querySelector("#allowField"),
   atomic: document.querySelector("#atomicToggle"),
   atomicMessage: document.querySelector("#atomicMessage"),
   start: document.querySelector("#startButton"),
@@ -35,6 +42,8 @@ async function start() {
   elements.version.textContent = `Version ${chrome.runtime.getManifest().version}`;
   elements.rounds.addEventListener("change", renderSchedule);
   elements.atomic.addEventListener("change", renderGuardrails);
+  elements.blockMode.addEventListener("change", renderGuardrails);
+  elements.allowMode.addEventListener("change", renderGuardrails);
   elements.start.addEventListener("click", startSession);
   elements.reset.addEventListener("click", resetSession);
   elements.test.addEventListener("click", testResetSession);
@@ -89,8 +98,11 @@ function syncConfigurationState() {
   const locked = Boolean(currentState?.running && isStudyPhase(currentState));
   const running = Boolean(currentState?.running);
   elements.rounds.disabled = locked;
-  elements.domains.disabled = locked || elements.atomic.checked;
+  elements.domains.disabled = locked || elements.atomic.checked || elements.allowMode.checked;
+  elements.allowedDomains.disabled = locked || elements.atomic.checked || elements.blockMode.checked;
   elements.atomic.disabled = locked;
+  elements.blockMode.disabled = locked || elements.atomic.checked;
+  elements.allowMode.disabled = locked || elements.atomic.checked;
   elements.schedule.querySelectorAll("select").forEach((select) => { select.disabled = locked; });
   elements.start.disabled = running;
   elements.reset.disabled = false;
@@ -102,7 +114,10 @@ function syncFormFromState(state) {
   const roundsChanged = Number(elements.rounds.value) !== state.config.rounds;
   elements.rounds.value = state.config.rounds;
   elements.atomic.checked = state.config.atomic;
+  elements.blockMode.checked = state.config.domainMode !== "allow";
+  elements.allowMode.checked = state.config.domainMode === "allow";
   elements.domains.value = state.config.domains.join(", ");
+  elements.allowedDomains.value = state.config.allowedDomains.join(", ");
   if (roundsChanged) renderSchedule();
   elements.schedule.querySelectorAll("select").forEach((select) => {
     const values = select.dataset.kind === "study" ? state.config.studySeconds : state.config.breakSeconds;
@@ -112,7 +127,14 @@ function syncFormFromState(state) {
 }
 
 function renderGuardrails() {
-  elements.domains.disabled = elements.atomic.checked || Boolean(currentState?.running && isStudyPhase(currentState));
+  const locked = Boolean(currentState?.running && isStudyPhase(currentState));
+  const isAllowMode = elements.allowMode.checked;
+  elements.blockField.hidden = isAllowMode;
+  elements.allowField.hidden = !isAllowMode;
+  elements.domains.disabled = elements.atomic.checked || locked || isAllowMode;
+  elements.allowedDomains.disabled = elements.atomic.checked || locked || !isAllowMode;
+  elements.blockMode.disabled = elements.atomic.checked || locked;
+  elements.allowMode.disabled = elements.atomic.checked || locked;
   elements.atomicMessage.hidden = !elements.atomic.checked;
 }
 
@@ -128,6 +150,8 @@ function readConfig() {
     studySeconds,
     breakSeconds,
     domains: parseDomainsInput(elements.domains.value),
+    allowedDomains: parseDomainsInput(elements.allowedDomains.value),
+    domainMode: elements.allowMode.checked ? "allow" : "block",
     atomic: elements.atomic.checked,
   };
 }

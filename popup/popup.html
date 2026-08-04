@@ -50,8 +50,24 @@
             <span>Atomic option</span>
           </label>
         </div>
-        <label class="field-label" for="domainsInput">Domains to block</label>
-        <textarea id="domainsInput" rows="3" placeholder="youtube.com, google.com, x.com"></textarea>
+        <div class="mode-picker" role="radiogroup" aria-label="Guardrails mode">
+          <label class="mode-chip">
+            <input id="blockMode" name="guardMode" type="radio" value="block" checked />
+            <span>Block list</span>
+          </label>
+          <label class="mode-chip">
+            <input id="allowMode" name="guardMode" type="radio" value="allow" />
+            <span>Allow list</span>
+          </label>
+        </div>
+        <div id="blockField">
+          <label class="field-label" for="domainsInput">Domains to block</label>
+          <textarea id="domainsInput" rows="3" placeholder="example.youtube.com, example.x.com, example.reddit.com"></textarea>
+        </div>
+        <div id="allowField" hidden>
+          <label class="field-label" for="allowedDomainsInput">Domains allowed</label>
+          <textarea id="allowedDomainsInput" rows="3" placeholder="example.docs.google.com, example.github.com, example.openai.com"></textarea>
+        </div>
         <p id="atomicMessage" class="helper-text">Atomic option blocks every website during study blocks. It cannot be turned off until the study timer ends.</p>
       </section>
 
@@ -66,7 +82,7 @@
 
       <footer class="footer">
         <hr />
-        <p>Made with love for the community by P. Trives</p>
+        <p>Made with 🩷 for the community by P. Trives</p>
         <p id="versionLabel">Version</p>
       </footer>
     </main>
