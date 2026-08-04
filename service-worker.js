@@ -36,6 +36,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "prime-audio" || message?.type === "play-sound") {
+    return false;
+  }
   handleMessage(message).then(sendResponse).catch((error) => {
     sendResponse({ error: error.message || "Unable to update the timer." });
   });
@@ -249,7 +252,7 @@ async function applyBlockingRules(config) {
       id: BLOCK_RULE_START + index,
       priority: 10,
       action: { type: "block" },
-      condition: { regexFilter: buildDomainRegex(domain), resourceTypes: ["main_frame", "sub_frame"] },
+      condition: { urlFilter: `||${domain}/`, resourceTypes: ["main_frame", "sub_frame"] },
     }));
   if (rules.length > 0) {
     await chrome.declarativeNetRequest.updateDynamicRules({ addRules: rules, removeRuleIds: [] });
@@ -264,9 +267,4 @@ async function clearBlockingRules() {
   if (removeRuleIds.length > 0) {
     await chrome.declarativeNetRequest.updateDynamicRules({ addRules: [], removeRuleIds });
   }
-}
-
-function buildDomainRegex(domain) {
-  const escaped = domain.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return `^https?://([^/]+\\.)?${escaped}([/:?#]|$)`;
 }
