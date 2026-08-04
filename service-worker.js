@@ -1,6 +1,7 @@
 const STATE_KEY = "make_me_useful_state";
 const BLOCK_RULE_START = 1000;
 const ALARM_NAME = "make-me-useful-phase-end";
+const BLOCKED_PAGE_URL = chrome.runtime.getURL("blocked/index.html");
 const MAX_ROUNDS = 4;
 
 const DEFAULT_CONFIG = {
@@ -31,6 +32,17 @@ chrome.runtime.onInstalled.addListener(async () => {
 
 chrome.runtime.onStartup.addListener(() => {
   syncState();
+});
+
+chrome.tabs.onActivated.addListener((activeInfo) => {
+  enforceTabById(activeInfo.tabId);
+});
+
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId !== 0) {
+    return;
+  }
+  enforceTabById(details.tabId);
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -154,6 +166,7 @@ async function startSession(rawConfig) {
   };
   await persistState(state);
   await applyBlockingRules(config);
+  await enforceActiveTab();
   await schedulePhaseEnd(state.phaseEndsAt);
   return state;
 }
@@ -194,6 +207,7 @@ async function advancePhase(state) {
 
   if (nextPhase.type === "study") {
     await applyBlockingRules(state.config);
+    await enforceActiveTab();
   } else {
     await clearBlockingRules();
   }
@@ -274,4 +288,57 @@ function buildAllowRules(allowedDomains) {
       condition: { regexFilter: "^https?://", resourceTypes: ["main_frame"] },
     },
   ];
+}
+
+async function enforceActiveTab() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tabs[0] && tabs[0].id) {
+    await enforceTabById(tabs[0].id);
+  }
+}
+
+async function enforceTabById(tabId) {
+  const state = await readState();
+  if (!state.running || !isStudyState(state)) {
+    return;
+  }
+
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab || !tab.id || !tab.url || !/^https?:\/\//.test(tab.url)) {
+    return;
+  }
+  if (!shouldBlockUrl(tab.url, state.config)) {
+    return;
+  }
+
+  await chrome.tabs.update(tab.id, {
+    url: `${BLOCKED_PAGE_URL}?url=${encodeURIComponent(tab.url)}`,
+  }).catch(() => {});
+}
+
+function isStudyState(state) {
+  const phases = buildPhases(state.config);
+  const currentPhase = phases[state.phaseIndex];
+  return currentPhase && currentPhase.type === "study";
+}
+
+function shouldBlockUrl(url, config) {
+  if (url.startsWith(BLOCKED_PAGE_URL)) {
+    return false;
+  }
+  if (config.atomic) {
+    return /^https?:\/\//.test(url);
+  }
+  return config.domainMode === "allow"
+    ? !matchesAnyDomain(url, config.allowedDomains)
+    : matchesAnyDomain(url, config.domains);
+}
+
+function matchesAnyDomain(url, domains) {
+  try {
+    const hostname = new URL(url).hostname.toLowerCase();
+    return domains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+  } catch {
+    return false;
+  }
 }
