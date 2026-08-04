@@ -87,14 +87,15 @@ function getStoredDuration(kind, index) {
 
 function syncConfigurationState() {
   const locked = Boolean(currentState?.running && isStudyPhase(currentState));
+  const running = Boolean(currentState?.running);
   elements.rounds.disabled = locked;
   elements.domains.disabled = locked || elements.atomic.checked;
   elements.atomic.disabled = locked;
   elements.schedule.querySelectorAll("select").forEach((select) => { select.disabled = locked; });
-  elements.start.disabled = locked;
-  elements.reset.disabled = locked;
+  elements.start.disabled = running;
+  elements.reset.disabled = false;
   elements.test.disabled = false;
-  elements.start.textContent = currentState?.running ? "Session running" : "Start session";
+  elements.start.textContent = running ? "Session running" : "Start session";
 }
 
 function syncFormFromState(state) {
