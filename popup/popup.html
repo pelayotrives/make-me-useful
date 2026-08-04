@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Make me useful</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <img src="../icons/icon-32.png" alt="" aria-hidden="true" />
+          <div>
+            <p class="eyebrow">make_me_useful</p>
+            <h1>Stay with the work.</h1>
+          </div>
+        </div>
+        <span id="statusPill" class="status-pill">Ready</span>
+      </header>
+
+      <section id="timerCard" class="timer-card" aria-live="polite">
+        <div class="timer-card__topline">
+          <span id="phaseLabel">Configure a session</span>
+          <span id="roundLabel">0 / 0</span>
+        </div>
+        <strong id="timeDisplay" class="time-display">00:00</strong>
+        <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
+        <p id="timerHint" class="timer-hint">Build a chain, then start when you are ready.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="chainTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">01 / chain</p>
+            <h2 id="chainTitle">Shape the session</h2>
+          </div>
+          <label class="rounds-control" for="roundsSelect">
+            <span>Study blocks</span>
+            <select id="roundsSelect" aria-label="Number of study blocks">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+            </select>
+          </label>
+        </div>
+        <div id="scheduleRows" class="schedule-rows"></div>
+        <p class="helper-text">Every study block is followed by its own break, including the final one.</p>
+      </section>
+
+      <section class="panel" aria-labelledby="guardTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">02 / guardrails</p>
+            <h2 id="guardTitle">Protect the focus window</h2>
+          </div>
+          <label class="switch-label">
+            <input id="atomicToggle" type="checkbox" />
+            <span class="switch" aria-hidden="true"></span>
+            <span>Atomic option</span>
+          </label>
+        </div>
+        <label class="field-label" for="domainsInput">Domains to block</label>
+        <textarea id="domainsInput" rows="3" placeholder="youtube.com\nnews.ycombinator.com\nreddit.com"></textarea>
+        <p id="atomicMessage" class="helper-text">Atomic option blocks every website during study blocks. It cannot be turned off until the study timer ends.</p>
+      </section>
+
+      <section class="actions" aria-label="Session actions">
+        <button id="startButton" class="button button--primary" type="button">Start session</button>
+        <button id="resetButton" class="button button--secondary" type="button">Reset</button>
+      </section>
+
+      <footer class="footer">
+        <hr />
+        <p>Made with love for the community by P. Trives</p>
+        <p id="versionLabel">Version</p>
+      </footer>
+    </main>
+    <script src="./popup.js" type="module"></script>
+  </body>
+</html>
