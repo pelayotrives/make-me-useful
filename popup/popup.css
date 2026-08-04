@@ -38,6 +38,22 @@ select, textarea { border: 1px solid var(--line); border-radius: var(--small-rad
 .schedule-row select { width: 100%; padding: 7px 24px 7px 8px; font-size: 11px; }
 .helper-text { margin-top: 12px; color: var(--ink); font-size: 10px; line-height: 1.45; }
 .field-label { margin-bottom: 6px; }
+.reset-gate { display: grid; gap: 10px; }
+.reset-gate__heading { margin-bottom: 0; }
+.reset-gate__actions { margin-top: 2px; }
+.reset-challenge {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(146, 20, 12, 0.05);
+  color: var(--signal);
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
 .mode-picker { display: flex; gap: 8px; margin-bottom: 12px; }
 .mode-chip { position: relative; display: inline-flex; align-items: center; }
 .mode-chip input { position: absolute; width: 1px; height: 1px; opacity: 0; }

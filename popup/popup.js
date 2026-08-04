@@ -20,6 +20,11 @@ const elements = {
   allowMode: document.querySelector("#allowMode"),
   blockField: document.querySelector("#blockField"),
   allowField: document.querySelector("#allowField"),
+  resetGate: document.querySelector("#resetGate"),
+  resetChallenge: document.querySelector("#resetChallenge"),
+  resetChallengeInput: document.querySelector("#resetChallengeInput"),
+  confirmReset: document.querySelector("#confirmResetButton"),
+  cancelReset: document.querySelector("#cancelResetButton"),
   atomic: document.querySelector("#atomicToggle"),
   atomicMessage: document.querySelector("#atomicMessage"),
   start: document.querySelector("#startButton"),
@@ -35,6 +40,7 @@ const elements = {
 
 let currentState = null;
 let refreshTimer = null;
+let resetChallengeValue = "";
 
 start();
 
@@ -42,11 +48,14 @@ async function start() {
   elements.version.textContent = `Version ${chrome.runtime.getManifest().version}`;
   elements.rounds.addEventListener("change", renderSchedule);
   elements.atomic.addEventListener("change", renderGuardrails);
-  elements.blockMode.addEventListener("change", renderGuardrails);
-  elements.allowMode.addEventListener("change", renderGuardrails);
+  elements.blockMode.addEventListener("change", handleGuardModeChange);
+  elements.allowMode.addEventListener("change", handleGuardModeChange);
   elements.start.addEventListener("click", startSession);
   elements.reset.addEventListener("click", resetSession);
   elements.test.addEventListener("click", testResetSession);
+  elements.resetChallengeInput.addEventListener("input", syncResetGateState);
+  elements.confirmReset.addEventListener("click", confirmResetSession);
+  elements.cancelReset.addEventListener("click", closeResetGate);
   renderSchedule();
   await refreshState();
   refreshTimer = window.setInterval(refreshState, 1000);
@@ -108,6 +117,9 @@ function syncConfigurationState() {
   elements.reset.disabled = false;
   elements.test.disabled = false;
   elements.start.textContent = running ? "Session running" : "Start session";
+  if (!running) {
+    closeResetGate();
+  }
 }
 
 function syncFormFromState(state) {
@@ -138,6 +150,18 @@ function renderGuardrails() {
   elements.atomicMessage.hidden = !elements.atomic.checked;
 }
 
+function handleGuardModeChange(event) {
+  if (!event.target.checked) {
+    return;
+  }
+  if (event.target === elements.allowMode) {
+    elements.domains.value = "";
+  } else {
+    elements.allowedDomains.value = "";
+  }
+  renderGuardrails();
+}
+
 function readConfig() {
   const studySeconds = Array(MAX_ROUNDS).fill(DEFAULT_CONFIG.studySeconds[0]);
   const breakSeconds = Array(MAX_ROUNDS).fill(DEFAULT_CONFIG.breakSeconds[0]);
@@ -161,11 +185,25 @@ async function startSession() {
 }
 
 async function resetSession() {
+  if (currentState?.running) {
+    openResetGate();
+    return;
+  }
   await sendAction({ type: "reset-session" });
 }
 
 async function testResetSession() {
+  closeResetGate();
   await sendAction({ type: "test-reset-session" });
+}
+
+async function confirmResetSession() {
+  if (elements.resetChallengeInput.value !== resetChallengeValue) {
+    elements.hint.textContent = "The reset string does not match yet.";
+    return;
+  }
+  closeResetGate();
+  await sendAction({ type: "reset-session" });
 }
 
 async function refreshState() {
@@ -250,4 +288,32 @@ function parseDomainsInput(value) {
     .split(/[\n,]+/)
     .map((domain) => domain.trim())
     .filter(Boolean);
+}
+
+function openResetGate() {
+  resetChallengeValue = generateResetChallenge(250);
+  elements.resetGate.hidden = false;
+  elements.resetChallenge.textContent = resetChallengeValue;
+  elements.resetChallengeInput.value = "";
+  elements.hint.textContent = "Copy the full reset string if you really want to abort this session.";
+  syncResetGateState();
+}
+
+function closeResetGate() {
+  resetChallengeValue = "";
+  elements.resetGate.hidden = true;
+  elements.resetChallenge.textContent = "";
+  elements.resetChallengeInput.value = "";
+  elements.confirmReset.disabled = true;
+}
+
+function syncResetGateState() {
+  elements.confirmReset.disabled = elements.resetChallengeInput.value !== resetChallengeValue || resetChallengeValue.length === 0;
+}
+
+function generateResetChallenge(length) {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@$%&*+-_=?:";
+  const bytes = new Uint32Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => alphabet[value % alphabet.length]).join("");
 }
