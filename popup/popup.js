@@ -17,6 +17,7 @@ const elements = {
   atomicMessage: document.querySelector("#atomicMessage"),
   start: document.querySelector("#startButton"),
   reset: document.querySelector("#resetButton"),
+  test: document.querySelector("#testButton"),
   phase: document.querySelector("#phaseLabel"),
   round: document.querySelector("#roundLabel"),
   time: document.querySelector("#timeDisplay"),
@@ -36,6 +37,7 @@ async function start() {
   elements.atomic.addEventListener("change", renderGuardrails);
   elements.start.addEventListener("click", startSession);
   elements.reset.addEventListener("click", resetSession);
+  elements.test.addEventListener("click", testResetSession);
   renderSchedule();
   await refreshState();
   refreshTimer = window.setInterval(refreshState, 1000);
@@ -50,7 +52,6 @@ function renderSchedule() {
     row.innerHTML = `
       <span class="schedule-row__number">${String(index + 1).padStart(2, "0")}</span>
       <label>Study<select data-kind="study" data-index="${index}">${durationOptions("study", getStoredDuration("studySeconds", index))}</select></label>
-      <span class="arrow" aria-hidden="true">→</span>
       <label>Break<select data-kind="break" data-index="${index}">${durationOptions("break", getStoredDuration("breakSeconds", index))}</select></label>
     `;
     elements.schedule.appendChild(row);
@@ -92,6 +93,7 @@ function syncConfigurationState() {
   elements.schedule.querySelectorAll("select").forEach((select) => { select.disabled = locked; });
   elements.start.disabled = locked;
   elements.reset.disabled = locked;
+  elements.test.disabled = false;
   elements.start.textContent = currentState?.running ? "Session running" : "Start session";
 }
 
@@ -139,6 +141,11 @@ async function resetSession() {
   applyState(response, true);
 }
 
+async function testResetSession() {
+  const response = await chrome.runtime.sendMessage({ type: "test-reset-session" });
+  applyState(response, true);
+}
+
 async function refreshState() {
   const response = await chrome.runtime.sendMessage({ type: "get-state" });
   applyState(response);
@@ -163,7 +170,7 @@ function applyState(state, forceFormSync = false) {
     const duration = phase.seconds * 1000;
     elements.progress.style.width = `${Math.max(0, Math.min(100, ((duration - remaining) / duration) * 100))}%`;
   } else {
-    elements.time.textContent = state.completed ? "DONE" : "00:00";
+    elements.time.textContent = state.completed ? "Done" : "00:00";
     elements.progress.style.width = state.completed ? "100%" : "0%";
   }
   syncConfigurationState();

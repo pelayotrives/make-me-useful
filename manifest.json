@@ -26,6 +26,7 @@
   "permissions": [
     "alarms",
     "declarativeNetRequest",
+    "offscreen",
     "storage"
   ],
   "host_permissions": [
