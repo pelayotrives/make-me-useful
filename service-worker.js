@@ -2,6 +2,7 @@ const STATE_KEY = "make_me_useful_state";
 const BLOCK_RULE_START = 1000;
 const ALARM_NAME = "make-me-useful-phase-end";
 const OFFSCREEN_DOCUMENT_PATH = "audio/offscreen.html";
+const BLOCKED_PAGE_PATH = "blocked/index.html";
 const MAX_ROUNDS = 4;
 
 const DEFAULT_CONFIG = {
@@ -29,6 +30,12 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(() => syncState());
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  if (details.frameId !== 0 || !details.url?.startsWith("http")) {
+    return;
+  }
+  await enforceBlockedNavigation(details.tabId, details.url);
+});
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) {
     syncState();
@@ -36,7 +43,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === "prime-audio" || message?.type === "play-sound") {
+  if (message?.target === "offscreen") {
     return false;
   }
   handleMessage(message).then(sendResponse).catch((error) => {
@@ -152,6 +159,7 @@ async function startSession(rawConfig) {
   };
   await persistState(state);
   await applyBlockingRules(config);
+  await redirectBlockedTabs(config);
   await schedulePhaseEnd(state.phaseEndsAt);
   return state;
 }
@@ -200,6 +208,7 @@ async function advancePhase(state, { notify }) {
 
   if (nextPhase.type === "study") {
     await applyBlockingRules(state.config);
+    await redirectBlockedTabs(state.config);
   } else {
     await clearBlockingRules();
   }
@@ -221,7 +230,7 @@ async function playCue(cue) {
   if (!ready) {
     return;
   }
-  await chrome.runtime.sendMessage({ type: "play-sound", cue });
+  await chrome.runtime.sendMessage({ target: "offscreen", type: "play-sound", cue });
 }
 
 async function prepareAudio() {
@@ -240,7 +249,7 @@ async function prepareAudio() {
       justification: "Play session transition sounds when the popup is closed.",
     });
   }
-  const response = await chrome.runtime.sendMessage({ type: "prime-audio" }).catch(() => ({ ok: false }));
+  const response = await chrome.runtime.sendMessage({ target: "offscreen", type: "prime-audio" }).catch(() => ({ ok: false }));
   return Boolean(response?.ok);
 }
 
@@ -267,4 +276,54 @@ async function clearBlockingRules() {
   if (removeRuleIds.length > 0) {
     await chrome.declarativeNetRequest.updateDynamicRules({ addRules: [], removeRuleIds });
   }
+}
+
+async function enforceBlockedNavigation(tabId, url) {
+  const state = await readState();
+  if (!state.running || !isStudyState(state)) {
+    return;
+  }
+  if (!shouldBlockUrl(url, state.config)) {
+    return;
+  }
+  await chrome.tabs.update(tabId, {
+    url: `${chrome.runtime.getURL(BLOCKED_PAGE_PATH)}?url=${encodeURIComponent(url)}`,
+  });
+}
+
+async function redirectBlockedTabs(config) {
+  const tabs = await chrome.tabs.query({});
+  await Promise.all(tabs.map(async (tab) => {
+    if (!tab.id || !tab.url?.startsWith("http")) {
+      return;
+    }
+    if (!shouldBlockUrl(tab.url, config)) {
+      return;
+    }
+    await chrome.tabs.update(tab.id, {
+      url: `${chrome.runtime.getURL(BLOCKED_PAGE_PATH)}?url=${encodeURIComponent(tab.url)}`,
+    });
+  }));
+}
+
+function shouldBlockUrl(url, config) {
+  if (config.atomic) {
+    return /^https?:\/\//.test(url);
+  }
+  return config.domains.some((domain) => matchesDomain(url, domain));
+}
+
+function matchesDomain(url, domain) {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === domain || host.endsWith(`.${domain}`);
+  } catch {
+    return false;
+  }
+}
+
+function isStudyState(state) {
+  const phases = buildPhases(state.config);
+  const currentPhase = phases[state.phaseIndex];
+  return currentPhase?.type === "study";
 }

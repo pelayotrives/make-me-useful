@@ -1,6 +1,9 @@
 let currentAudio = null;
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.target !== "offscreen") {
+    return false;
+  }
   if (message?.type === "prime-audio") {
     sendResponse({ ok: true });
     return false;
