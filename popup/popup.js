@@ -1,11 +1,13 @@
 const MAX_ROUNDS = 4;
 const DEFAULT_CONFIG = {
   rounds: 3,
-  studyMinutes: [25, 25, 25, 25],
-  breakMinutes: [5, 5, 5, 5],
+  studySeconds: [1500, 1500, 1500, 1500],
+  breakSeconds: [300, 300, 300, 300],
   domains: [],
   atomic: false,
 };
+
+const TEST_DURATION_SECONDS = 1;
 
 const elements = {
   rounds: document.querySelector("#roundsSelect"),
@@ -20,7 +22,6 @@ const elements = {
   time: document.querySelector("#timeDisplay"),
   progress: document.querySelector("#progressBar"),
   hint: document.querySelector("#timerHint"),
-  status: document.querySelector("#statusPill"),
   version: document.querySelector("#versionLabel"),
 };
 
@@ -48,20 +49,35 @@ function renderSchedule() {
     row.className = "schedule-row";
     row.innerHTML = `
       <span class="schedule-row__number">${String(index + 1).padStart(2, "0")}</span>
-      <label>Study<select data-kind="study" data-index="${index}">${durationOptions(20, 60, getStoredDuration("studyMinutes", index))}</select></label>
+      <label>Study<select data-kind="study" data-index="${index}">${durationOptions("study", getStoredDuration("studySeconds", index))}</select></label>
       <span class="arrow" aria-hidden="true">→</span>
-      <label>Break<select data-kind="break" data-index="${index}">${durationOptions(5, 30, getStoredDuration("breakMinutes", index))}</select></label>
+      <label>Break<select data-kind="break" data-index="${index}">${durationOptions("break", getStoredDuration("breakSeconds", index))}</select></label>
     `;
     elements.schedule.appendChild(row);
   }
+  elements.schedule.querySelectorAll("select").forEach((select) => {
+    select.addEventListener("change", syncPreviewLabels);
+  });
+  syncPreviewLabels();
   syncConfigurationState();
 }
 
-function durationOptions(minimum, maximum, selected) {
-  return Array.from({ length: ((maximum - minimum) / 5) + 1 }, (_, offset) => {
-    const value = minimum + offset * 5;
-    return `<option value="${value}"${value === selected ? " selected" : ""}>${value} min</option>`;
-  }).join("");
+function durationOptions(kind, selected) {
+  const options = [];
+  options.push(optionMarkup(TEST_DURATION_SECONDS, selected, "1 sec"));
+  const range = kind === "study" ? buildMinuteRange(20, 60) : buildMinuteRange(5, 30);
+  range.forEach((minutes) => {
+    options.push(optionMarkup(minutes * 60, selected, `${minutes} min`));
+  });
+  return options.join("");
+}
+
+function buildMinuteRange(minimum, maximum) {
+  return Array.from({ length: ((maximum - minimum) / 5) + 1 }, (_, offset) => minimum + offset * 5);
+}
+
+function optionMarkup(value, selected, label) {
+  return `<option value="${value}"${value === selected ? " selected" : ""}>${label}</option>`;
 }
 
 function getStoredDuration(kind, index) {
@@ -86,9 +102,10 @@ function syncFormFromState(state) {
   elements.domains.value = state.config.domains.join("\n");
   if (roundsChanged) renderSchedule();
   elements.schedule.querySelectorAll("select").forEach((select) => {
-    const values = select.dataset.kind === "study" ? state.config.studyMinutes : state.config.breakMinutes;
+    const values = select.dataset.kind === "study" ? state.config.studySeconds : state.config.breakSeconds;
     select.value = String(values[Number(select.dataset.index)]);
   });
+  syncPreviewLabels();
 }
 
 function renderGuardrails() {
@@ -97,16 +114,16 @@ function renderGuardrails() {
 }
 
 function readConfig() {
-  const studyMinutes = Array(MAX_ROUNDS).fill(25);
-  const breakMinutes = Array(MAX_ROUNDS).fill(5);
+  const studySeconds = Array(MAX_ROUNDS).fill(DEFAULT_CONFIG.studySeconds[0]);
+  const breakSeconds = Array(MAX_ROUNDS).fill(DEFAULT_CONFIG.breakSeconds[0]);
   elements.schedule.querySelectorAll("select").forEach((select) => {
-    const target = select.dataset.kind === "study" ? studyMinutes : breakMinutes;
+    const target = select.dataset.kind === "study" ? studySeconds : breakSeconds;
     target[Number(select.dataset.index)] = Number(select.value);
   });
   return {
     rounds: Number(elements.rounds.value),
-    studyMinutes,
-    breakMinutes,
+    studySeconds,
+    breakSeconds,
     domains: elements.domains.value.split("\n").map((domain) => domain.trim()).filter(Boolean),
     atomic: elements.atomic.checked,
   };
@@ -133,15 +150,17 @@ function applyState(state, forceFormSync = false) {
   currentState = state;
   if (shouldSyncForm) syncFormFromState(state);
   const phase = getPhase(state);
-  elements.status.textContent = state.completed ? "Complete" : state.running ? (phase.type === "study" ? "Focus locked" : "Break") : "Ready";
-  elements.status.className = `status-pill status-pill--${state.completed ? "complete" : state.running ? phase.type : "ready"}`;
   elements.phase.textContent = state.completed ? "Chain complete" : state.running ? (phase.type === "study" ? "Study block" : "Recovery break") : "Configure a session";
-  elements.round.textContent = state.running ? `${Math.floor(state.phaseIndex / 2) + 1} / ${state.config.rounds}` : `${state.config.rounds} blocks`;
-  elements.hint.textContent = state.running && phase.type === "study" ? "The focus lock is active until this block ends." : state.running ? "Use the break to reset before the next block." : "Build a chain, then start when you are ready.";
+  syncPreviewLabels();
+  elements.hint.textContent = state.running && phase.type === "study"
+    ? "The focus lock is active until this block ends."
+    : state.running
+      ? "Use the break to reset before the next block."
+      : "Build a chain, then start when you are ready.";
   if (state.running) {
     const remaining = Math.max(0, state.phaseEndsAt - Date.now());
     elements.time.textContent = formatTime(remaining);
-    const duration = phase.minutes * 60 * 1000;
+    const duration = phase.seconds * 1000;
     elements.progress.style.width = `${Math.max(0, Math.min(100, ((duration - remaining) / duration) * 100))}%`;
   } else {
     elements.time.textContent = state.completed ? "DONE" : "00:00";
@@ -151,9 +170,22 @@ function applyState(state, forceFormSync = false) {
   renderGuardrails();
 }
 
+function syncPreviewLabels() {
+  const rounds = Number(elements.rounds.value);
+  if (currentState?.running) {
+    elements.round.textContent = `${Math.floor(currentState.phaseIndex / 2) + 1} / ${currentState.config.rounds}`;
+    return;
+  }
+  elements.round.textContent = `${rounds} ${rounds === 1 ? "Block" : "Blocks"}`;
+}
+
 function getPhase(state) {
   const index = Math.min(state.phaseIndex, state.config.rounds * 2 - 1);
-  return { type: index % 2 === 0 ? "study" : "break", minutes: index % 2 === 0 ? state.config.studyMinutes[Math.floor(index / 2)] : state.config.breakMinutes[Math.floor(index / 2)] };
+  const roundIndex = Math.floor(index / 2);
+  return {
+    type: index % 2 === 0 ? "study" : "break",
+    seconds: index % 2 === 0 ? state.config.studySeconds[roundIndex] : state.config.breakSeconds[roundIndex],
+  };
 }
 
 function isStudyPhase(state) {
