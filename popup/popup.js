@@ -102,7 +102,7 @@ function syncFormFromState(state) {
   const roundsChanged = Number(elements.rounds.value) !== state.config.rounds;
   elements.rounds.value = state.config.rounds;
   elements.atomic.checked = state.config.atomic;
-  elements.domains.value = state.config.domains.join("\n");
+  elements.domains.value = state.config.domains.join(", ");
   if (roundsChanged) renderSchedule();
   elements.schedule.querySelectorAll("select").forEach((select) => {
     const values = select.dataset.kind === "study" ? state.config.studySeconds : state.config.breakSeconds;
@@ -127,7 +127,7 @@ function readConfig() {
     rounds: Number(elements.rounds.value),
     studySeconds,
     breakSeconds,
-    domains: elements.domains.value.split("\n").map((domain) => domain.trim()).filter(Boolean),
+    domains: parseDomainsInput(elements.domains.value),
     atomic: elements.atomic.checked,
   };
 }
@@ -219,4 +219,11 @@ function formatTime(milliseconds) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function parseDomainsInput(value) {
+  return value
+    .split(/[\n,]+/)
+    .map((domain) => domain.trim())
+    .filter(Boolean);
 }
