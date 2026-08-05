@@ -1,5 +1,5 @@
 const MAX_ROUNDS = 4;
-const ENABLE_TEST_CONTROLS = false;
+const ENABLE_TEST_CONTROLS = true;
 const DEFAULT_CONFIG = {
   rounds: 3,
   studySeconds: [1500, 1500, 1500, 1500],

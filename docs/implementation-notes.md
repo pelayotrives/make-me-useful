@@ -43,12 +43,15 @@ This document captures the non-obvious behaviour and local switches used in `mak
 - On session start, the active tab is checked immediately and blocked if needed.
 - Other already-open tabs are not force-blocked in bulk.
 - If those tabs later become active, or if the active blocked tab reloads/navigates during a study block, they are checked and blocked then.
+- During break phases, blocking rules are removed.
+- When the timer automatically returns from a break to the next study block, blocking rules are applied again and the current active tab is checked immediately.
 
 ## Blocked Page
 
 - The blocked screen lives in `blocked/index.html`.
 - It intentionally uses the same monospace font direction as the popup.
 - The previously shown URL box was removed to keep the page cleaner.
+- It now reads live extension state and shows the active study block number plus the remaining time at the top when a study block is running.
 
 ## Reload Requirements
 

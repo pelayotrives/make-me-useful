@@ -9,39 +9,171 @@
         --ink: #1e1e24;
         --signal: #92140c;
         --paper: #fff8f0;
+        --line: rgba(146, 20, 12, 0.36);
+        --muted: rgba(30, 30, 36, 0.7);
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
         min-height: 100vh;
         display: grid;
         place-items: center;
         padding: 24px;
-        background: var(--paper);
+        background:
+          radial-gradient(circle at top, rgba(146, 20, 12, 0.06), transparent 42%),
+          var(--paper);
         color: var(--ink);
         font-family: "SFMono-Regular", "Cascadia Code", "IBM Plex Mono", "Fira Code", "Menlo", "Consolas", monospace;
       }
 
       main {
-        width: min(520px, 100%);
+        width: min(560px, 100%);
         padding: 28px;
-        border: 1px solid rgba(146, 20, 12, 0.36);
+        border: 1px solid var(--line);
         border-radius: 24px;
-        background: #fffdf9;
+        background: rgba(255, 253, 249, 0.94);
+        box-shadow: 0 18px 50px rgba(146, 20, 12, 0.08);
       }
 
-      h1, p { margin: 0; }
-      h1 { font-size: 28px; line-height: 1; }
-      p { margin-top: 10px; line-height: 1.45; }
-      .eyebrow { margin-bottom: 8px; color: var(--signal); font-weight: 700; }
+      h1,
+      p {
+        margin: 0;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        color: var(--signal);
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .phase-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-size: 14px;
+      }
+
+      .phase-chip__time {
+        color: var(--signal);
+        font-weight: 700;
+      }
+
+      .copy {
+        padding-top: 22px;
+      }
+
+      h1 {
+        font-size: 28px;
+        line-height: 1;
+        margin-bottom: 16px;
+      }
+
+      p {
+        max-width: 46ch;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.5;
+      }
     </style>
   </head>
   <body>
     <main>
-      <p class="eyebrow">Focus lock</p>
-      <h1>This domain is blocked during the current study block.</h1>
-      <p>Finish the active block or hit your test reset in the extension if you are debugging the flow.</p>
+      <div class="status-row">
+        <p class="eyebrow">Focus lock</p>
+        <div class="phase-chip" id="phaseChip" hidden>
+          <span id="phaseLabel">Active study block</span>
+          <span class="phase-chip__time" id="timeLeft">00:00</span>
+        </div>
+      </div>
+      <div class="copy">
+        <h1>This domain is blocked during the current study block.</h1>
+        <p>Finish the active block or hold reset inside the extension if you really want to abandon the session.</p>
+      </div>
     </main>
+    <script>
+      const phaseChip = document.getElementById("phaseChip");
+      const phaseLabel = document.getElementById("phaseLabel");
+      const timeLeft = document.getElementById("timeLeft");
+
+      let tickId = null;
+      let syncId = null;
+      let currentState = null;
+
+      function buildPhases(config) {
+        const phases = [];
+        for (let index = 0; index < config.rounds; index += 1) {
+          phases.push({ type: "study", seconds: config.studySeconds[index] });
+          phases.push({ type: "break", seconds: config.breakSeconds[index] });
+        }
+        return phases;
+      }
+
+      function formatClock(ms) {
+        const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+        const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+        const seconds = String(totalSeconds % 60).padStart(2, "0");
+        return `${minutes}:${seconds}`;
+      }
+
+      function renderPhaseMeta() {
+        if (!currentState || !currentState.running) {
+          phaseChip.hidden = true;
+          return;
+        }
+
+        const phases = buildPhases(currentState.config);
+        const phase = phases[currentState.phaseIndex];
+        if (!phase || phase.type !== "study") {
+          phaseChip.hidden = true;
+          return;
+        }
+
+        const blockNumber = Math.floor(Number(currentState.phaseIndex || 0) / 2) + 1;
+        phaseLabel.textContent = `Active study block ${blockNumber}`;
+        timeLeft.textContent = formatClock(currentState.phaseEndsAt - Date.now());
+        phaseChip.hidden = false;
+      }
+
+      async function syncState() {
+        try {
+          const nextState = await chrome.runtime.sendMessage({ type: "get-state" });
+          if (!nextState || nextState.error) {
+            phaseChip.hidden = true;
+            return;
+          }
+          currentState = nextState;
+          renderPhaseMeta();
+        } catch {
+          phaseChip.hidden = true;
+        }
+      }
+
+      syncState();
+      tickId = window.setInterval(renderPhaseMeta, 250);
+      syncId = window.setInterval(syncState, 1000);
+
+      window.addEventListener("beforeunload", () => {
+        if (tickId) {
+          window.clearInterval(tickId);
+        }
+        if (syncId) {
+          window.clearInterval(syncId);
+        }
+      });
+    </script>
   </body>
 </html>

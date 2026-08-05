@@ -14,6 +14,7 @@ All notable changes to Make me useful are documented in this file.
 - Added a long-press reset interaction on the main `Reset` button with visual progress feedback.
 - Added a local `ENABLE_TEST_CONTROLS` flag to hide or restore the `TEST` button without removing code.
 - Added a maintenance note document describing production/test switches and special UI behaviour.
+- Added live study-block metadata to the blocked page so it shows the active block number and remaining time.
 
 ### Changed
 
@@ -24,6 +25,7 @@ All notable changes to Make me useful are documented in this file.
 - Reworked the reset flow from immediate reset to hold-to-reset, increasing the hold time to 45 seconds for production.
 - Changed the reset helper copy to live under the main action buttons instead of using a separate reset section.
 - Reworked the blocked page spacing and removed the previous empty URL skeleton element.
+- Refined the blocked page top bar so focus status and countdown live together in a compact header.
 - Adjusted select styling, spacing, and native-chevron positioning treatment across the popup.
 - Updated the popup visual language to use softer red borders instead of hard black outlines.
 
