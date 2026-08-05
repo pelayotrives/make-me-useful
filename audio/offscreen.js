@@ -54,8 +54,11 @@ function loadAudio(cue) {
     return Promise.reject(new Error(`Unknown audio cue: ${cue}`));
   }
 
-  const audio = new Audio(chrome.runtime.getURL(`audio/sounds/${filename}`));
+  const audio = document.createElement("audio");
+  audio.src = chrome.runtime.getURL(`audio/sounds/${filename}`);
   audio.preload = "auto";
+  audio.setAttribute("aria-hidden", "true");
+  document.body.appendChild(audio);
   audioByCue.set(cue, audio);
   return Promise.resolve(audio);
 }

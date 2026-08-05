@@ -66,7 +66,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 });
 
 async function handleMessage(message) {
-  switch (message && message.type) {
+  switch (message?.type) {
     case "get-state":
       return syncState();
     case "start-session":
@@ -85,7 +85,7 @@ async function readState() {
 }
 
 function normalizeState(value) {
-  const config = normalizeConfig(value && value.config);
+  const config = normalizeConfig(value?.config);
   return {
     ...IDLE_STATE,
     ...value,
@@ -108,11 +108,11 @@ function normalizeConfig(value) {
 
 function normalizeDurationList(secondsValues, legacyMinuteValues, fallback, minimum, maximum) {
   return Array.from({ length: MAX_ROUNDS }, (_, index) => {
-    const secondsValue = Number(secondsValues && secondsValues[index]);
+    const secondsValue = Number(secondsValues?.[index]);
     if (Number.isFinite(secondsValue)) {
       return clamp(secondsValue, minimum, maximum);
     }
-    const legacyMinutes = Number(legacyMinuteValues && legacyMinuteValues[index]);
+    const legacyMinutes = Number(legacyMinuteValues?.[index]);
     if (Number.isFinite(legacyMinutes)) {
       return clamp(legacyMinutes * 60, minimum, maximum);
     }
@@ -394,7 +394,7 @@ async function enforceTabById(tabId, state = null) {
 function isStudyState(state) {
   const phases = buildPhases(state.config);
   const currentPhase = phases[state.phaseIndex];
-  return currentPhase && currentPhase.type === "study";
+  return currentPhase?.type === "study";
 }
 
 function shouldBlockUrl(url, config) {
