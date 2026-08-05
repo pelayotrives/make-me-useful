@@ -105,6 +105,7 @@
       </div>
     </main>
     <script>
+      const STATE_KEY = "make_me_useful_state";
       const phaseChip = document.getElementById("phaseChip");
       const phaseLabel = document.getElementById("phaseLabel");
       const timeLeft = document.getElementById("timeLeft");
@@ -129,6 +130,13 @@
         return `${minutes}:${seconds}`;
       }
 
+      function normalizeState(value) {
+        if (!value || typeof value !== "object") {
+          return null;
+        }
+        return value;
+      }
+
       function renderPhaseMeta() {
         if (!currentState || !currentState.running) {
           phaseChip.hidden = true;
@@ -143,19 +151,19 @@
         }
 
         const blockNumber = Math.floor(Number(currentState.phaseIndex || 0) / 2) + 1;
-        phaseLabel.textContent = `Active study block ${blockNumber}`;
+        phaseLabel.textContent = `Study block ${blockNumber}`;
         timeLeft.textContent = formatClock(currentState.phaseEndsAt - Date.now());
         phaseChip.hidden = false;
       }
 
       async function syncState() {
         try {
-          const nextState = await chrome.runtime.sendMessage({ type: "get-state" });
-          if (!nextState || nextState.error) {
+          const stored = await chrome.storage.local.get(STATE_KEY);
+          currentState = normalizeState(stored[STATE_KEY]);
+          if (!currentState) {
             phaseChip.hidden = true;
             return;
           }
-          currentState = nextState;
           renderPhaseMeta();
         } catch {
           phaseChip.hidden = true;
@@ -165,6 +173,14 @@
       syncState();
       tickId = window.setInterval(renderPhaseMeta, 250);
       syncId = window.setInterval(syncState, 1000);
+
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== "local" || !changes[STATE_KEY]) {
+          return;
+        }
+        currentState = normalizeState(changes[STATE_KEY].newValue);
+        renderPhaseMeta();
+      });
 
       window.addEventListener("beforeunload", () => {
         if (tickId) {
