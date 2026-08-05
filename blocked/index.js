@@ -24,7 +24,22 @@ function formatClock(ms) {
 }
 
 function renderPhaseMeta() {
-  if (!currentState?.running || !currentState.config) {
+  if (!currentState || !currentState.config) {
+    phaseChip.hidden = true;
+    return;
+  }
+
+  if (currentState.completed) {
+    phaseLabel.textContent = "Finished!";
+    phaseChip.classList.add("is-finished");
+    timeLeft.hidden = true;
+    phaseChip.hidden = false;
+    return;
+  }
+
+  phaseChip.classList.remove("is-finished");
+  timeLeft.hidden = false;
+  if (!currentState.running) {
     phaseChip.hidden = true;
     return;
   }

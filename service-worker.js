@@ -169,7 +169,7 @@ async function startSession(rawConfig) {
   };
   await persistState(state);
   await applyBlockingRules(config);
-  await enforceActiveTab();
+  await enforceActiveTab(state);
   await schedulePhaseEnd(state.phaseEndsAt);
   return state;
 }
@@ -215,7 +215,7 @@ async function advancePhase(state) {
   await persistState(nextState);
   if (nextPhase.type === "study") {
     await applyBlockingRules(state.config);
-    await enforceActiveTab();
+    await enforceActiveTab(nextState);
   } else {
     await clearBlockingRules();
   }
@@ -298,20 +298,21 @@ function buildAllowRules(allowedDomains) {
   ];
 }
 
-async function enforceActiveTab() {
+async function enforceActiveTab(state = null) {
   const tabs = await chrome.tabs.query({ active: true });
+  const currentState = state || await readState();
   await Promise.all(tabs
     .filter((tab) => tab.id)
-    .map((tab) => enforceTabById(tab.id)));
+    .map((tab) => enforceTabById(tab.id, currentState)));
 }
 
 function safelyEnforceTabById(tabId) {
   enforceTabById(tabId).catch(() => {});
 }
 
-async function enforceTabById(tabId) {
-  const state = await readState();
-  if (!state.running || !isStudyState(state)) {
+async function enforceTabById(tabId, state = null) {
+  const currentState = state || await readState();
+  if (!currentState.running || !isStudyState(currentState)) {
     return;
   }
 
@@ -319,7 +320,7 @@ async function enforceTabById(tabId) {
   if (!tab || !tab.id || !tab.url || !/^https?:\/\//.test(tab.url)) {
     return;
   }
-  if (!shouldBlockUrl(tab.url, state.config)) {
+  if (!shouldBlockUrl(tab.url, currentState.config)) {
     return;
   }
 
