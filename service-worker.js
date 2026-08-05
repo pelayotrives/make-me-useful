@@ -179,7 +179,6 @@ async function resetSession() {
   await chrome.alarms.clear(ALARM_NAME);
   await clearBlockingRules();
   await persistState(state);
-  await restoreBlockedTabs();
   return state;
 }
 
@@ -198,7 +197,6 @@ async function advancePhase(state) {
     };
     await persistState(completedState);
     await clearBlockingRules();
-    await restoreBlockedTabs();
     await chrome.alarms.clear(ALARM_NAME);
     return completedState;
   }
@@ -218,7 +216,6 @@ async function advancePhase(state) {
   } else {
     await persistState(nextState);
     await clearBlockingRules();
-    await restoreBlockedTabs();
   }
   await schedulePhaseEnd(nextState.phaseEndsAt);
   return nextState;
@@ -271,22 +268,6 @@ async function clearBlockingRules() {
       addRules: [],
     });
   }
-}
-
-async function restoreBlockedTabs() {
-  const tabs = await chrome.tabs.query({});
-  await Promise.all(tabs.map(async (tab) => {
-    if (!tab.id || !tab.url || !tab.url.startsWith(BLOCKED_PAGE_URL)) {
-      return;
-    }
-
-    const originalUrl = new URL(tab.url).searchParams.get("url");
-    if (!originalUrl || !/^https?:\/\//.test(originalUrl)) {
-      return;
-    }
-
-    await chrome.tabs.update(tab.id, { url: originalUrl }).catch(() => {});
-  }));
 }
 
 function buildAllowRules(allowedDomains) {

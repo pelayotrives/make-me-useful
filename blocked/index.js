@@ -31,13 +31,14 @@ function renderPhaseMeta() {
 
   const phases = buildPhases(currentState.config);
   const phase = phases[Number(currentState.phaseIndex)];
-  if (!phase || phase.type !== "study") {
+  if (!phase) {
     phaseChip.hidden = true;
     return;
   }
 
   const blockNumber = Math.floor(Number(currentState.phaseIndex || 0) / 2) + 1;
-  phaseLabel.textContent = `Study block ${blockNumber}`;
+  const phaseName = phase.type === "study" ? "Study" : "Break";
+  phaseLabel.textContent = `${phaseName} block ${blockNumber}`;
   timeLeft.textContent = formatClock(Number(currentState.phaseEndsAt) - Date.now());
   phaseChip.hidden = false;
 }
