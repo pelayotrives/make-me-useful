@@ -33,7 +33,7 @@
         <p>Make me useful is a local-first chained focus timer. It stores session settings and timer state in the browser and uses Chrome's local network rules to enforce the user's focus guardrails.</p>
 
         <h2>What data the extension handles</h2>
-        <p>The extension handles the domains the user enters for blocking, the configured timer durations, and the current session state. It does not inspect page contents, collect browsing history, or monitor clicks, keystrokes, or scrolling.</p>
+        <p>The extension temporarily handles the current tab URL when enforcing the user's blocking rules. It also handles the domains the user enters, the configured timer durations, and the current session state. It does not build or retain a browsing history, inspect page contents, or monitor clicks, keystrokes, or scrolling.</p>
 
         <h2>What the extension stores</h2>
         <p>Session configuration and timer state are stored locally with <code>chrome.storage.local</code>. They are not sent to a developer-controlled server.</p>

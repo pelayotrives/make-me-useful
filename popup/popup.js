@@ -1,5 +1,5 @@
 const MAX_ROUNDS = 4;
-const ENABLE_TEST_CONTROLS = true;
+const ENABLE_TEST_CONTROLS = false;
 const DEFAULT_CONFIG = {
   rounds: 3,
   studySeconds: [1500, 1500, 1500, 1500],
@@ -87,9 +87,7 @@ function renderSchedule() {
 
 function durationOptions(kind, selected) {
   const range = kind === "study" ? buildMinuteRange(20, 60) : buildMinuteRange(5, 30);
-  const testOption = optionMarkup(5, selected, "5 sec");
-  const minuteOptions = range.map((minutes) => optionMarkup(minutes * 60, selected, `${minutes} min`)).join("");
-  return testOption + minuteOptions;
+  return range.map((minutes) => optionMarkup(minutes * 60, selected, `${minutes} min`)).join("");
 }
 
 function buildMinuteRange(minimum, maximum) {
