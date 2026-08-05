@@ -93,6 +93,24 @@
         font-size: 15px;
         line-height: 1.5;
       }
+
+      .progress-track {
+        height: 8px;
+        margin-top: 22px;
+        overflow: hidden;
+        border: 1px solid rgba(146, 20, 12, 0.14);
+        border-radius: 999px;
+        background: rgba(146, 20, 12, 0.08);
+      }
+
+      .progress-track span {
+        display: block;
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--signal);
+        transition: width 250ms linear;
+      }
     </style>
   </head>
   <body>
@@ -107,6 +125,9 @@
       <div class="copy">
         <h1>This domain is blocked during the current study block.</h1>
         <p>Finish the active block or hold reset inside the extension if you really want to abandon the session.</p>
+        <div class="progress-track" role="progressbar" aria-label="Current block progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="progressBar"></span>
+        </div>
       </div>
     </main>
     <script src="index.js"></script>

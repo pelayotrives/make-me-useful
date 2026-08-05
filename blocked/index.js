@@ -2,6 +2,8 @@ const STATE_KEY = "make_me_useful_state";
 const phaseChip = document.getElementById("phaseChip");
 const phaseLabel = document.getElementById("phaseLabel");
 const timeLeft = document.getElementById("timeLeft");
+const progressTrack = document.querySelector(".progress-track");
+const progressBar = document.getElementById("progressBar");
 
 let tickId = null;
 let syncId = null;
@@ -26,6 +28,7 @@ function formatClock(ms) {
 function renderPhaseMeta() {
   if (!currentState || !currentState.config) {
     phaseChip.hidden = true;
+    updateProgress(0);
     return;
   }
 
@@ -34,6 +37,7 @@ function renderPhaseMeta() {
     phaseChip.classList.add("is-finished");
     timeLeft.hidden = true;
     phaseChip.hidden = false;
+    updateProgress(100);
     return;
   }
 
@@ -41,6 +45,7 @@ function renderPhaseMeta() {
   timeLeft.hidden = false;
   if (!currentState.running) {
     phaseChip.hidden = true;
+    updateProgress(0);
     return;
   }
 
@@ -48,6 +53,7 @@ function renderPhaseMeta() {
   const phase = phases[Number(currentState.phaseIndex)];
   if (!phase) {
     phaseChip.hidden = true;
+    updateProgress(0);
     return;
   }
 
@@ -56,6 +62,15 @@ function renderPhaseMeta() {
   phaseLabel.textContent = `${phaseName} block ${blockNumber}`;
   timeLeft.textContent = formatClock(Number(currentState.phaseEndsAt) - Date.now());
   phaseChip.hidden = false;
+  const duration = Math.max(1, Number(phase.seconds) * 1000);
+  const elapsed = Date.now() - Number(currentState.phaseStartedAt);
+  updateProgress(Math.min(100, Math.max(0, (elapsed / duration) * 100)));
+}
+
+function updateProgress(value) {
+  const progress = Math.round(value * 10) / 10;
+  progressBar.style.width = `${progress}%`;
+  progressTrack.setAttribute("aria-valuenow", String(Math.round(progress)));
 }
 
 async function syncState() {

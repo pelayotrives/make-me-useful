@@ -56,6 +56,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.target === "offscreen") {
+    return false;
+  }
   handleMessage(message).then(sendResponse).catch((error) => {
     sendResponse({ error: error.message || "Unable to update the timer." });
   });
