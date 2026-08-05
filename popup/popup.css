@@ -41,14 +41,14 @@ textarea { border: 1px solid var(--line); border-radius: var(--small-radius); ba
 .select-shell {
   display: block;
   width: 100%;
+  padding-right: 8px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--small-radius);
   background: var(--paper);
 }
 .select-shell select {
-  width: calc(100% + 4px);
-  margin-right: -4px;
+  width: 100%;
   border: 0;
   border-radius: 0;
   background: transparent;

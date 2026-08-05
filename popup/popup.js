@@ -1,4 +1,5 @@
 const MAX_ROUNDS = 4;
+const ENABLE_TEST_CONTROLS = false;
 const DEFAULT_CONFIG = {
   rounds: 3,
   studySeconds: [1500, 1500, 1500, 1500],
@@ -8,8 +9,6 @@ const DEFAULT_CONFIG = {
   domainMode: "block",
   atomic: false,
 };
-
-const TEST_DURATION_SECONDS = 1;
 const RESET_HOLD_MS = 45000;
 
 const elements = {
@@ -24,6 +23,7 @@ const elements = {
   resetHint: document.querySelector("#resetHint"),
   resetHoldFill: document.querySelector("#resetHoldFill"),
   resetButtonLabel: document.querySelector("#resetButtonLabel"),
+  testActions: document.querySelector("#testActions"),
   atomic: document.querySelector("#atomicToggle"),
   atomicMessage: document.querySelector("#atomicMessage"),
   start: document.querySelector("#startButton"),
@@ -56,7 +56,10 @@ async function start() {
   elements.reset.addEventListener("pointerleave", cancelResetHold);
   elements.reset.addEventListener("pointercancel", cancelResetHold);
   elements.reset.addEventListener("click", interceptResetClick);
-  elements.test.addEventListener("click", testResetSession);
+  elements.testActions.hidden = !ENABLE_TEST_CONTROLS;
+  if (ENABLE_TEST_CONTROLS) {
+    elements.test.addEventListener("click", testResetSession);
+  }
   renderSchedule();
   await refreshState();
   refreshTimer = window.setInterval(refreshState, 1000);
@@ -83,13 +86,8 @@ function renderSchedule() {
 }
 
 function durationOptions(kind, selected) {
-  const options = [];
-  options.push(optionMarkup(TEST_DURATION_SECONDS, selected, "1 sec"));
   const range = kind === "study" ? buildMinuteRange(20, 60) : buildMinuteRange(5, 30);
-  range.forEach((minutes) => {
-    options.push(optionMarkup(minutes * 60, selected, `${minutes} min`));
-  });
-  return options.join("");
+  return range.map((minutes) => optionMarkup(minutes * 60, selected, `${minutes} min`)).join("");
 }
 
 function buildMinuteRange(minimum, maximum) {
@@ -116,7 +114,9 @@ function syncConfigurationState() {
   elements.schedule.querySelectorAll("select").forEach((select) => { select.disabled = locked; });
   elements.start.disabled = running;
   elements.reset.disabled = false;
-  elements.test.disabled = false;
+  if (ENABLE_TEST_CONTROLS) {
+    elements.test.disabled = false;
+  }
   elements.start.textContent = running ? "Session running" : "Start session";
   elements.resetHint.hidden = !running;
   if (!running) {
