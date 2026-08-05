@@ -70,8 +70,8 @@ function renderSchedule() {
     row.className = "schedule-row";
     row.innerHTML = `
       <span class="schedule-row__number">${String(index + 1).padStart(2, "0")}</span>
-      <label>Study<select data-kind="study" data-index="${index}">${durationOptions("study", getStoredDuration("studySeconds", index))}</select></label>
-      <label>Break<select data-kind="break" data-index="${index}">${durationOptions("break", getStoredDuration("breakSeconds", index))}</select></label>
+      <label>Study<span class="select-shell"><select data-kind="study" data-index="${index}">${durationOptions("study", getStoredDuration("studySeconds", index))}</select></span></label>
+      <label>Break<span class="select-shell"><select data-kind="break" data-index="${index}">${durationOptions("break", getStoredDuration("breakSeconds", index))}</select></span></label>
     `;
     elements.schedule.appendChild(row);
   }
