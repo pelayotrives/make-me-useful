@@ -178,8 +178,8 @@ async function resetSession() {
   const state = { ...IDLE_STATE, config: DEFAULT_CONFIG };
   await chrome.alarms.clear(ALARM_NAME);
   await clearBlockingRules();
-  await restoreBlockedTabs();
   await persistState(state);
+  await restoreBlockedTabs();
   return state;
 }
 
@@ -188,10 +188,7 @@ async function advancePhase(state) {
   const nextIndex = state.phaseIndex + 1;
 
   if (nextIndex >= phases.length) {
-    await clearBlockingRules();
-    await restoreBlockedTabs();
-    await chrome.alarms.clear(ALARM_NAME);
-    return {
+    const completedState = {
       ...state,
       running: false,
       completed: true,
@@ -199,6 +196,11 @@ async function advancePhase(state) {
       phaseStartedAt: 0,
       phaseEndsAt: 0,
     };
+    await persistState(completedState);
+    await clearBlockingRules();
+    await restoreBlockedTabs();
+    await chrome.alarms.clear(ALARM_NAME);
+    return completedState;
   }
 
   const now = Date.now();
@@ -214,6 +216,7 @@ async function advancePhase(state) {
     await applyBlockingRules(state.config);
     await enforceActiveTab();
   } else {
+    await persistState(nextState);
     await clearBlockingRules();
     await restoreBlockedTabs();
   }
