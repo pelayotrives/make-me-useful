@@ -299,10 +299,10 @@ function buildAllowRules(allowedDomains) {
 }
 
 async function enforceActiveTab() {
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tabs[0] && tabs[0].id) {
-    await enforceTabById(tabs[0].id);
-  }
+  const tabs = await chrome.tabs.query({ active: true });
+  await Promise.all(tabs
+    .filter((tab) => tab.id)
+    .map((tab) => enforceTabById(tab.id)));
 }
 
 function safelyEnforceTabById(tabId) {
