@@ -10,7 +10,7 @@ const DEFAULT_CONFIG = {
 };
 
 const TEST_DURATION_SECONDS = 1;
-const RESET_HOLD_MS = 30000;
+const RESET_HOLD_MS = 45000;
 
 const elements = {
   rounds: document.querySelector("#roundsSelect"),

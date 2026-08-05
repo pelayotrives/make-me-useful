@@ -20,7 +20,7 @@
         padding: 24px;
         background: var(--paper);
         color: var(--ink);
-        font-family: Arial, sans-serif;
+        font-family: "SFMono-Regular", "Cascadia Code", "IBM Plex Mono", "Fira Code", "Menlo", "Consolas", monospace;
       }
 
       main {
@@ -34,16 +34,7 @@
       h1, p { margin: 0; }
       h1 { font-size: 28px; line-height: 1; }
       p { margin-top: 10px; line-height: 1.45; }
-      .eyebrow { color: var(--signal); font-weight: 700; }
-      code {
-        display: block;
-        margin-top: 14px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        background: rgba(146, 20, 12, 0.06);
-        color: var(--signal);
-        overflow-wrap: anywhere;
-      }
+      .eyebrow { margin-bottom: 8px; color: var(--signal); font-weight: 700; }
     </style>
   </head>
   <body>
@@ -51,11 +42,6 @@
       <p class="eyebrow">Focus lock</p>
       <h1>This domain is blocked during the current study block.</h1>
       <p>Finish the active block or hit your test reset in the extension if you are debugging the flow.</p>
-      <code id="blockedUrl"></code>
     </main>
-    <script>
-      const url = new URL(window.location.href).searchParams.get("url");
-      document.querySelector("#blockedUrl").textContent = url || "";
-    </script>
   </body>
 </html>
