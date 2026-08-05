@@ -87,7 +87,9 @@ function renderSchedule() {
 
 function durationOptions(kind, selected) {
   const range = kind === "study" ? buildMinuteRange(20, 60) : buildMinuteRange(5, 30);
-  return range.map((minutes) => optionMarkup(minutes * 60, selected, `${minutes} min`)).join("");
+  const testOption = optionMarkup(5, selected, "5 sec");
+  const minuteOptions = range.map((minutes) => optionMarkup(minutes * 60, selected, `${minutes} min`)).join("");
+  return testOption + minuteOptions;
 }
 
 function buildMinuteRange(minimum, maximum) {

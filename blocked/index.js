@@ -44,11 +44,14 @@ function renderPhaseMeta() {
 
 async function syncState() {
   try {
+    // Ask the service worker to advance overdue phases before rendering.
+    const state = await chrome.runtime.sendMessage({ type: "get-state" });
+    currentState = state || null;
+    renderPhaseMeta();
+  } catch {
     const stored = await chrome.storage.local.get(STATE_KEY);
     currentState = stored[STATE_KEY] || null;
     renderPhaseMeta();
-  } catch {
-    phaseChip.hidden = true;
   }
 }
 
