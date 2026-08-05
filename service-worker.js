@@ -257,6 +257,9 @@ async function primeAudio() {
 
 async function playSoundCue(cue) {
   try {
+    if (await playSoundInBlockedPage(cue)) {
+      return;
+    }
     await ensureOffscreenDocument();
     const response = await chrome.runtime.sendMessage({
       target: "offscreen",
@@ -269,6 +272,28 @@ async function playSoundCue(cue) {
   } catch (error) {
     console.warn(`Make me useful audio message failed: ${cue}`, error);
   }
+}
+
+async function playSoundInBlockedPage(cue) {
+  const tabs = await chrome.tabs.query({ url: `${BLOCKED_PAGE_URL}*` });
+  for (const tab of tabs) {
+    if (!tab.id) {
+      continue;
+    }
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        target: "blocked-page",
+        type: "play-sound",
+        cue,
+      });
+      if (response?.ok) {
+        return true;
+      }
+    } catch {
+      // The page can be navigating; the offscreen document is the fallback.
+    }
+  }
+  return false;
 }
 
 async function ensureOffscreenDocument() {

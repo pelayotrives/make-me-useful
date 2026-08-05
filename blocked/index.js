@@ -4,10 +4,51 @@ const phaseLabel = document.getElementById("phaseLabel");
 const timeLeft = document.getElementById("timeLeft");
 const progressTrack = document.querySelector(".progress-track");
 const progressBar = document.getElementById("progressBar");
+const audioByCue = new Map();
 
 let tickId = null;
 let syncId = null;
 let currentState = null;
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.target !== "blocked-page" || message.type !== "play-sound") {
+    return false;
+  }
+  playCue(message.cue).then(() => sendResponse({ ok: true })).catch((error) => {
+    console.error("Make me useful blocked-page audio failed", error);
+    sendResponse({ ok: false, error: error.message });
+  });
+  return true;
+});
+
+async function playCue(cue) {
+  const audio = getAudio(cue);
+  audio.pause();
+  audio.currentTime = 0;
+  audio.volume = 1;
+  await audio.play();
+}
+
+function getAudio(cue) {
+  if (audioByCue.has(cue)) {
+    return audioByCue.get(cue);
+  }
+  const filename = {
+    "study-complete": "success.mp3",
+    "break-complete": "stop.mp3",
+    "session-complete": "complete.mp3",
+  }[cue];
+  if (!filename) {
+    throw new Error(`Unknown audio cue: ${cue}`);
+  }
+  const audio = document.createElement("audio");
+  audio.src = chrome.runtime.getURL(`audio/sounds/${filename}`);
+  audio.preload = "auto";
+  audio.setAttribute("aria-hidden", "true");
+  document.body.appendChild(audio);
+  audioByCue.set(cue, audio);
+  return audio;
+}
 
 function buildPhases(config) {
   const phases = [];
