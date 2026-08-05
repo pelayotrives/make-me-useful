@@ -210,11 +210,13 @@ async function advancePhase(state) {
     phaseEndsAt: now + nextPhase.seconds * 1000,
   };
 
+  // Persist the new phase before enforcing the active tab so the guard sees
+  // the study state when a break transitions back into focus time.
+  await persistState(nextState);
   if (nextPhase.type === "study") {
     await applyBlockingRules(state.config);
     await enforceActiveTab();
   } else {
-    await persistState(nextState);
     await clearBlockingRules();
   }
   await schedulePhaseEnd(nextState.phaseEndsAt);
