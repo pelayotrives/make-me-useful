@@ -32,6 +32,18 @@ Read the full privacy policy here:
 - `storage`: persist the session configuration and timer state locally.
 - `<all_urls>` host access: allow blocking rules to apply to the domains selected by the user.
 
+## Timer sounds
+
+The timer uses three local MP3 cues from the UI SFX Minimal pack:
+
+- `success.mp3` when a study block ends
+- `stop.mp3` when a break ends
+- `complete.mp3` when the full session ends
+
+Source: https://github.com/romainsimon/uisfx
+
+The UI SFX audio pack is released under CC0 1.0. The files are bundled locally so playback does not depend on an external website or network access.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
