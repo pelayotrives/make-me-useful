@@ -2,7 +2,6 @@ const STATE_KEY = "make_me_useful_state";
 const BLOCK_RULE_START = 1000;
 const ALARM_NAME = "make-me-useful-phase-end";
 const BLOCKED_PAGE_URL = chrome.runtime.getURL("blocked/index.html");
-const OFFSCREEN_DOCUMENT_PATH = "audio/offscreen.html";
 const MAX_ROUNDS = 4;
 
 const DEFAULT_CONFIG = {
@@ -56,9 +55,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.target === "offscreen") {
-    return false;
-  }
   handleMessage(message).then(sendResponse).catch((error) => {
     sendResponse({ error: error.message || "Unable to update the timer." });
   });
@@ -172,7 +168,6 @@ async function startSession(rawConfig) {
     config,
   };
   await persistState(state);
-  await primeAudio();
   await applyBlockingRules(config);
   await enforceActiveTab(state);
   await schedulePhaseEnd(state.phaseEndsAt);
@@ -203,7 +198,6 @@ async function advancePhase(state) {
     await persistState(completedState);
     await clearBlockingRules();
     await chrome.alarms.clear(ALARM_NAME);
-    await playSoundCue("session-complete");
     return completedState;
   }
 
@@ -222,10 +216,8 @@ async function advancePhase(state) {
   if (nextPhase.type === "study") {
     await applyBlockingRules(state.config);
     await enforceActiveTab(nextState);
-    await playSoundCue("break-complete");
   } else {
     await clearBlockingRules();
-    await playSoundCue("study-complete");
   }
   await schedulePhaseEnd(nextState.phaseEndsAt);
   return nextState;
@@ -238,85 +230,6 @@ async function persistState(state) {
 async function schedulePhaseEnd(timestamp) {
   await chrome.alarms.clear(ALARM_NAME);
   await chrome.alarms.create(ALARM_NAME, { when: timestamp });
-}
-
-async function primeAudio() {
-  try {
-    await ensureOffscreenDocument();
-    const response = await chrome.runtime.sendMessage({
-      target: "offscreen",
-      type: "prime-audio",
-    });
-    if (!response?.ok) {
-      console.warn("Make me useful audio preload failed", response?.error);
-    }
-  } catch (error) {
-    console.warn("Make me useful audio setup failed", error);
-  }
-}
-
-async function playSoundCue(cue) {
-  try {
-    if (await playSoundInBlockedPage(cue)) {
-      return;
-    }
-    await ensureOffscreenDocument();
-    const response = await chrome.runtime.sendMessage({
-      target: "offscreen",
-      type: "play-sound",
-      cue,
-    });
-    if (!response?.ok) {
-      console.warn(`Make me useful audio cue failed: ${cue}`, response?.error);
-    }
-  } catch (error) {
-    console.warn(`Make me useful audio message failed: ${cue}`, error);
-  }
-}
-
-async function playSoundInBlockedPage(cue) {
-  const tabs = await chrome.tabs.query({ url: `${BLOCKED_PAGE_URL}*` });
-  for (const tab of tabs) {
-    if (!tab.id) {
-      continue;
-    }
-    try {
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        target: "blocked-page",
-        type: "play-sound",
-        cue,
-      });
-      if (response?.ok) {
-        return true;
-      }
-    } catch {
-      // The page can be navigating; the offscreen document is the fallback.
-    }
-  }
-  return false;
-}
-
-async function ensureOffscreenDocument() {
-  const url = chrome.runtime.getURL(OFFSCREEN_DOCUMENT_PATH);
-  if ("getContexts" in chrome.runtime) {
-    const contexts = await chrome.runtime.getContexts({
-      contextTypes: ["OFFSCREEN_DOCUMENT"],
-      documentUrls: [url],
-    });
-    if (contexts.length > 0) {
-      return;
-    }
-  }
-
-  await chrome.offscreen.createDocument({
-    url: OFFSCREEN_DOCUMENT_PATH,
-    reasons: ["AUDIO_PLAYBACK"],
-    justification: "Play local timer transition sounds while the popup is closed.",
-  }).catch((error) => {
-    if (!String(error?.message || "").includes("Only a single offscreen")) {
-      throw error;
-    }
-  });
 }
 
 async function applyBlockingRules(config) {
