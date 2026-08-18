@@ -34,6 +34,7 @@ All notable changes to Make me useful are documented in this file.
 
 ### Fixed
 
+- Fixed saved-list spacing so the `List name` field has balanced separation above and below, and transient status messages no longer leave empty layout space.
 - Fixed the `X Blocks` preview label so it updates immediately when changing the number of study blocks.
 - Fixed guardrail mode switching so stale domains are cleared when changing between block list and allow list.
 - Fixed the reset button so it remains usable through the hold interaction without trapping the user in a locked state.

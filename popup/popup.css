@@ -89,7 +89,8 @@ textarea::placeholder { color: rgba(30, 30, 36, 0.45); }
 .domain-list-name-row { display: flex; align-items: stretch; gap: 8px; }
 .domain-list-name-row input { min-width: 0; flex: 1; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--small-radius); background: var(--paper); color: var(--ink); font-size: 11px; }
 .domain-list-status { min-height: 14px; margin-top: 6px; color: var(--signal); font-size: 10px; }
-.domain-lists { display: grid; gap: 6px; margin-top: 4px; }
+.domain-list-status:empty { display: none; }
+.domain-lists { display: grid; gap: 6px; margin-top: 14px; }
 .domain-list-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px; border: 1px solid var(--soft-line); border-radius: var(--small-radius); }
 .domain-list-item__copy { display: grid; gap: 2px; min-width: 0; }
 .domain-list-item__copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }

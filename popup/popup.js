@@ -46,6 +46,7 @@ let refreshTimer = null;
 let holdStartAt = 0;
 let holdTimer = null;
 let domainLists = [];
+let domainListStatusTimer = null;
 
 start();
 
@@ -57,6 +58,7 @@ async function start() {
   elements.allowMode.addEventListener("change", handleGuardModeChange);
   elements.saveDomainList.addEventListener("click", saveDomainList);
   elements.domainLists.addEventListener("click", handleDomainListAction);
+  document.addEventListener("pointerdown", dismissDomainListStatus, true);
   elements.start.addEventListener("click", startSession);
   elements.reset.addEventListener("pointerdown", beginResetHold);
   elements.reset.addEventListener("pointerup", cancelResetHold);
@@ -261,7 +263,22 @@ function renderDomainLists() {
 }
 
 function setDomainListStatus(message) {
+  if (domainListStatusTimer) {
+    window.clearTimeout(domainListStatusTimer);
+  }
   elements.domainListStatus.textContent = message;
+  if (message) {
+    domainListStatusTimer = window.setTimeout(() => {
+      elements.domainListStatus.textContent = "";
+      domainListStatusTimer = null;
+    }, 3000);
+  }
+}
+
+function dismissDomainListStatus(event) {
+  if (event.target !== elements.domainListStatus && elements.domainListStatus.textContent) {
+    setDomainListStatus("");
+  }
 }
 
 function escapeHtml(value) {
