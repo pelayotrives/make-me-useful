@@ -13,6 +13,7 @@ const RESET_HOLD_MS = 45000;
 
 const elements = {
   rounds: document.querySelector("#roundsSelect"),
+  roundsValue: document.querySelector("#roundsValue"),
   schedule: document.querySelector("#scheduleRows"),
   domains: document.querySelector("#domainsInput"),
   allowedDomains: document.querySelector("#allowedDomainsInput"),
@@ -76,6 +77,8 @@ async function start() {
 
 function renderSchedule() {
   const rounds = Number(elements.rounds.value);
+  elements.roundsValue.value = String(rounds);
+  elements.roundsValue.textContent = String(rounds);
   elements.schedule.replaceChildren();
   for (let index = 0; index < rounds; index += 1) {
     const row = document.createElement("div");
@@ -139,6 +142,8 @@ function syncConfigurationState() {
 function syncFormFromState(state) {
   const roundsChanged = Number(elements.rounds.value) !== state.config.rounds;
   elements.rounds.value = state.config.rounds;
+  elements.roundsValue.value = String(state.config.rounds);
+  elements.roundsValue.textContent = String(state.config.rounds);
   elements.atomic.checked = state.config.atomic;
   elements.blockMode.checked = state.config.domainMode !== "allow";
   elements.allowMode.checked = state.config.domainMode === "allow";
@@ -200,12 +205,7 @@ async function saveDomainList() {
     return;
   }
   try {
-    const response = await chrome.runtime.sendMessage({
-      type: "save-domain-list",
-      name,
-      domains,
-      domainMode: elements.allowMode.checked ? "allow" : "block",
-    });
+    const response = await chrome.runtime.sendMessage({ type: "save-domain-list", name, domains });
     if (response?.error) {
       setDomainListStatus(response.error);
       return;
@@ -225,11 +225,7 @@ async function handleDomainListAction(event) {
   const list = domainLists.find((item) => item.id === button.dataset.id);
   if (!list) return;
   if (button.dataset.action === "load") {
-    const isAllowed = list.domainMode === "allow";
-    elements.allowMode.checked = isAllowed;
-    elements.blockMode.checked = !isAllowed;
-    renderGuardrails();
-    const target = isAllowed ? elements.allowedDomains : elements.domains;
+    const target = elements.allowMode.checked ? elements.allowedDomains : elements.domains;
     target.value = list.domains.join(", ");
     setDomainListStatus(`Loaded ${list.name}.`);
     return;
@@ -250,11 +246,11 @@ function renderDomainLists() {
     item.innerHTML = `
       <div class="domain-list-item__copy">
         <strong>${escapeHtml(list.name)}</strong>
-        <span>${list.domainMode === "allow" ? "Allowed" : "Blocked"} · ${list.domains.length} ${list.domains.length === 1 ? "domain" : "domains"}</span>
+        <span>${list.domains.length} ${list.domains.length === 1 ? "domain" : "domains"}</span>
       </div>
       <div class="domain-list-item__actions">
-        <button class="button button--small button--primary" type="button" data-action="load" data-id="${escapeHtml(list.id)}">Load</button>
-        <button class="button button--small button--secondary button--danger" type="button" data-action="delete" data-id="${escapeHtml(list.id)}">Delete</button>
+        <button class="button button--small" type="button" data-action="load" data-id="${escapeHtml(list.id)}">Load</button>
+        <button class="button button--small button--danger" type="button" data-action="delete" data-id="${escapeHtml(list.id)}">Delete</button>
       </div>`;
     elements.domainLists.appendChild(item);
   });

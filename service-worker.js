@@ -1,4 +1,5 @@
 const STATE_KEY = "make_me_useful_state";
+const DOMAIN_LISTS_KEY = "make_me_useful_domain_lists";
 const BLOCK_RULE_START = 1000;
 const ALARM_NAME = "make-me-useful-phase-end";
 const BLOCKED_PAGE_URL = chrome.runtime.getURL("blocked/index.html");
@@ -70,9 +71,60 @@ async function handleMessage(message) {
     case "reset-session":
     case "test-reset-session":
       return resetSession();
+    case "get-domain-lists":
+      return readDomainLists();
+    case "save-domain-list":
+      return saveDomainList(message.name, message.domains, message.domainMode);
+    case "delete-domain-list":
+      return deleteDomainList(message.id);
     default:
       return syncState();
   }
+}
+
+async function readDomainLists() {
+  const stored = await chrome.storage.local.get(DOMAIN_LISTS_KEY);
+  return normalizeDomainLists(stored[DOMAIN_LISTS_KEY]);
+}
+
+function normalizeDomainLists(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => ({
+      id: String(item?.id || ""),
+      name: String(item?.name || "").trim().slice(0, 40),
+      domains: normalizeDomains(item?.domains),
+      domainMode: item?.domainMode === "allow" ? "allow" : "block",
+      updatedAt: Number(item?.updatedAt) || 0,
+    }))
+    .filter((item) => item.id && item.name && item.domains.length > 0)
+    .slice(0, 20);
+}
+
+async function saveDomainList(rawName, rawDomains, rawDomainMode) {
+  const name = String(rawName || "").trim().slice(0, 40);
+  const domains = normalizeDomains(rawDomains);
+  const domainMode = rawDomainMode === "allow" ? "allow" : "block";
+  if (!name) throw new Error("Add a name for this list first.");
+  if (domains.length === 0) throw new Error("Add at least one valid domain before saving.");
+  const lists = await readDomainLists();
+  const existing = lists.find((item) => item.name.toLowerCase() === name.toLowerCase());
+  const record = {
+    id: existing?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    domains,
+    domainMode,
+    updatedAt: Date.now(),
+  };
+  const next = [record, ...lists.filter((item) => item.id !== record.id)].slice(0, 20);
+  await chrome.storage.local.set({ [DOMAIN_LISTS_KEY]: next });
+  return next;
+}
+
+async function deleteDomainList(id) {
+  const next = (await readDomainLists()).filter((item) => item.id !== String(id));
+  await chrome.storage.local.set({ [DOMAIN_LISTS_KEY]: next });
+  return next;
 }
 
 async function readState() {

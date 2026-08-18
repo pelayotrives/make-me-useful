@@ -34,6 +34,7 @@
                 <option value="4">4</option>
               </select>
             </span>
+            <output id="roundsValue" class="rounds-value" for="roundsSelect">3</output>
           </label>
         </div>
         <div id="scheduleRows" class="schedule-rows"></div>
@@ -71,10 +72,13 @@
           <textarea id="allowedDomainsInput" rows="3" placeholder="Example: docs.google.com, github.com, openai.com"></textarea>
         </div>
         <div class="domain-library">
+          <div class="domain-library__heading">
+            <span class="field-label">Saved domain lists</span>
+            <button id="saveDomainListButton" class="button button--small" type="button">Save list</button>
+          </div>
           <div class="domain-list-name-row">
             <label class="sr-only" for="domainListNameInput">Saved domain list name</label>
-            <input id="domainListNameInput" type="text" maxlength="40" placeholder="List name" />
-            <button id="saveDomainListButton" class="button button--small button--primary" type="button">Save list</button>
+            <input id="domainListNameInput" type="text" maxlength="40" placeholder="List name, e.g. Deep work" />
           </div>
           <p id="domainListStatus" class="domain-list-status" role="status" aria-live="polite"></p>
           <div id="domainLists" class="domain-lists" aria-live="polite"></div>

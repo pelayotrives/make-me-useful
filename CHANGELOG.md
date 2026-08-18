@@ -2,10 +2,13 @@
 
 All notable changes to Make me useful are documented in this file.
 
-## [Unreleased]
+## [0.1.2]
 
 ### Added
 
+- Added saved domain lists with local save, load, overwrite, and delete actions.
+- Added `Blocked` and `Allowed` labels to saved domain lists, with automatic mode selection when loading one.
+- Added a visible study-block count beside the selector so the active value is always clear.
 - Added a `Block list` / `Allow list` guardrails mode switch so only one domain strategy is active at a time.
 - Added comma-separated domain entry support for both blocked and allowed domains.
 - Added active-tab enforcement for blocked domains when a study block starts.
