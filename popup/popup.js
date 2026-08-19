@@ -25,6 +25,10 @@ const elements = {
   saveDomainList: document.querySelector("#saveDomainListButton"),
   domainListStatus: document.querySelector("#domainListStatus"),
   domainLists: document.querySelector("#domainLists"),
+  deleteModal: document.querySelector("#deleteModal"),
+  deleteModalMessage: document.querySelector("#deleteModalMessage"),
+  cancelDelete: document.querySelector("#cancelDeleteButton"),
+  confirmDelete: document.querySelector("#confirmDeleteButton"),
   resetHint: document.querySelector("#resetHint"),
   resetHoldFill: document.querySelector("#resetHoldFill"),
   resetButtonLabel: document.querySelector("#resetButtonLabel"),
@@ -49,6 +53,7 @@ let holdTimer = null;
 let domainLists = [];
 let domainListStatusTimer = null;
 let editingDomainListId = null;
+let pendingDeleteListId = null;
 
 start();
 
@@ -62,6 +67,10 @@ async function start() {
   elements.allowedDomains.addEventListener("input", persistDomainDraft);
   elements.saveDomainList.addEventListener("click", saveDomainList);
   elements.domainLists.addEventListener("click", handleDomainListAction);
+  elements.cancelDelete.addEventListener("click", closeDeleteModal);
+  elements.confirmDelete.addEventListener("click", confirmDeleteList);
+  elements.deleteModal.addEventListener("click", handleDeleteModalClick);
+  document.addEventListener("keydown", handleDeleteModalKeydown);
   document.addEventListener("pointerdown", dismissDomainListStatus, true);
   elements.start.addEventListener("click", startSession);
   elements.reset.addEventListener("pointerdown", beginResetHold);
@@ -249,6 +258,9 @@ async function saveDomainList() {
     domainLists = response;
     editingDomainListId = null;
     elements.domainListName.value = "";
+    const activeDomains = elements.allowMode.checked ? elements.allowedDomains : elements.domains;
+    activeDomains.value = "";
+    persistDomainDraft();
     elements.saveDomainList.textContent = "Save list";
     setDomainListStatus("List saved.");
     renderDomainLists();
@@ -289,16 +301,43 @@ async function handleDomainListAction(event) {
     return;
   }
   if (button.dataset.action === "delete") {
-    const response = await chrome.runtime.sendMessage({ type: "delete-domain-list", id: list.id });
-    domainLists = Array.isArray(response) ? response : domainLists;
-    if (editingDomainListId === list.id) {
-      editingDomainListId = null;
-      elements.domainListName.value = "";
-      elements.saveDomainList.textContent = "Save list";
-    }
-    setDomainListStatus("List deleted.");
-    renderDomainLists();
+    openDeleteModal(list);
   }
+}
+
+function openDeleteModal(list) {
+  pendingDeleteListId = list.id;
+  elements.deleteModalMessage.textContent = `Delete "${list.name}"? This cannot be undone.`;
+  elements.deleteModal.hidden = false;
+  elements.confirmDelete.focus();
+}
+
+function closeDeleteModal() {
+  pendingDeleteListId = null;
+  elements.deleteModal.hidden = true;
+}
+
+async function confirmDeleteList() {
+  if (!pendingDeleteListId) return;
+  const deletedId = pendingDeleteListId;
+  const response = await chrome.runtime.sendMessage({ type: "delete-domain-list", id: deletedId });
+  closeDeleteModal();
+  domainLists = Array.isArray(response) ? response : domainLists;
+  if (editingDomainListId === deletedId) {
+    editingDomainListId = null;
+    elements.domainListName.value = "";
+    elements.saveDomainList.textContent = "Save list";
+  }
+  setDomainListStatus("List deleted.");
+  renderDomainLists();
+}
+
+function handleDeleteModalClick(event) {
+  if (event.target === elements.deleteModal) closeDeleteModal();
+}
+
+function handleDeleteModalKeydown(event) {
+  if (event.key === "Escape" && !elements.deleteModal.hidden) closeDeleteModal();
 }
 
 function renderDomainLists() {
@@ -312,9 +351,18 @@ function renderDomainLists() {
         <span>${list.domainMode === "allow" ? "Allowed" : "Blocked"} · ${list.domains.length} ${list.domains.length === 1 ? "domain" : "domains"}</span>
       </div>
       <div class="domain-list-item__actions">
-        <button class="button button--small button--primary" type="button" data-action="load" data-id="${escapeHtml(list.id)}">Load</button>
-        <button class="button button--small button--secondary" type="button" data-action="edit" data-id="${escapeHtml(list.id)}">Edit</button>
-        <button class="button button--small button--secondary button--danger" type="button" data-action="delete" data-id="${escapeHtml(list.id)}">Delete</button>
+        <button class="button button--small icon-button button--primary" type="button" data-action="load" data-id="${escapeHtml(list.id)}" aria-label="Load ${escapeHtml(list.name)}" title="Load list">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+          <span class="sr-only">Load</span>
+        </button>
+        <button class="button button--small icon-button button--secondary" type="button" data-action="edit" data-id="${escapeHtml(list.id)}" aria-label="Edit ${escapeHtml(list.name)}" title="Edit list">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 16.5-.7 3.7 3.7-.7L18.2 8.3a2.5 2.5 0 0 0-3.5-3.5L4 16.5Z" /><path d="m13.5 6.5 4 4" /></svg>
+          <span class="sr-only">Edit</span>
+        </button>
+        <button class="button button--small icon-button button--secondary button--danger" type="button" data-action="delete" data-id="${escapeHtml(list.id)}" aria-label="Delete ${escapeHtml(list.name)}" title="Delete list">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5" /></svg>
+          <span class="sr-only">Delete</span>
+        </button>
       </div>`;
     elements.domainLists.appendChild(item);
   });

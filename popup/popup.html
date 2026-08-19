@@ -101,6 +101,17 @@
         <p id="versionLabel">Version</p>
       </footer>
     </main>
+    <div id="deleteModal" class="modal-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+      <div class="confirm-modal">
+        <p class="eyebrow">Guardrails &gt; Confirm</p>
+        <h2 id="deleteModalTitle">Delete this list?</h2>
+        <p id="deleteModalMessage">This saved domain list will be removed from your local library.</p>
+        <div class="modal-actions">
+          <button id="cancelDeleteButton" class="button button--secondary" type="button">Keep list</button>
+          <button id="confirmDeleteButton" class="button button--primary" type="button">Delete list</button>
+        </div>
+      </div>
+    </div>
     <script src="./popup.js" type="module"></script>
   </body>
 </html>

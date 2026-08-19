@@ -8,6 +8,13 @@ All notable changes to Make me useful are documented in this file.
 
 - Added an `Edit` action for saved domain lists so names and domains can be updated.
 - Added local persistence for unfinished blocked and allowed domain textarea drafts when the popup closes.
+- Added a design-system confirmation modal before deleting a saved domain list.
+
+### Changed
+
+- Replaced saved-list text actions with compact square add, edit, and delete icon controls.
+- Balanced the guardrails panel spacing when no saved lists are present.
+- Clear the active domain textarea after successfully saving a list.
 
 ## [0.1.2]
 
