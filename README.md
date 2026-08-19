@@ -9,7 +9,8 @@ Make me useful is a Chrome extension for building deliberate work sessions from 
 - Set every following break independently from 5 to 30 minutes in five-minute steps.
 - Run the sequence as `study > break > study > break`, including a final break after the last study block.
 - Block selected domains during study blocks.
-- Save named block and allow lists locally, then load them into a session in one click.
+- Save named block and allow lists locally, then load or edit them in one click.
+- Keep unfinished blocked and allowed domain drafts when the popup closes.
 - Use the Atomic Option to block every website during study blocks.
 - Keep the focus lock active until the current study timer ends.
 - Continue the session while the popup is closed through the extension service worker and alarms.

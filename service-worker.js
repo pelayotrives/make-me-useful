@@ -74,7 +74,7 @@ async function handleMessage(message) {
     case "get-domain-lists":
       return readDomainLists();
     case "save-domain-list":
-      return saveDomainList(message.name, message.domains, message.domainMode);
+      return saveDomainList(message.name, message.domains, message.domainMode, message.id);
     case "delete-domain-list":
       return deleteDomainList(message.id);
     default:
@@ -101,14 +101,20 @@ function normalizeDomainLists(value) {
     .slice(0, 20);
 }
 
-async function saveDomainList(rawName, rawDomains, rawDomainMode) {
+async function saveDomainList(rawName, rawDomains, rawDomainMode, rawId) {
   const name = String(rawName || "").trim().slice(0, 40);
   const domains = normalizeDomains(rawDomains);
   const domainMode = rawDomainMode === "allow" ? "allow" : "block";
   if (!name) throw new Error("Add a name for this list first.");
   if (domains.length === 0) throw new Error("Add at least one valid domain before saving.");
   const lists = await readDomainLists();
-  const existing = lists.find((item) => item.name.toLowerCase() === name.toLowerCase());
+  const editId = String(rawId || "");
+  const existingById = lists.find((item) => item.id === editId);
+  const existingByName = lists.find((item) => item.name.toLowerCase() === name.toLowerCase());
+  if (editId && existingByName && existingByName.id !== editId) {
+    throw new Error("A list with this name already exists.");
+  }
+  const existing = existingById || existingByName;
   const record = {
     id: existing?.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     name,

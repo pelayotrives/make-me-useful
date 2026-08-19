@@ -2,6 +2,13 @@
 
 All notable changes to Make me useful are documented in this file.
 
+## [0.1.3]
+
+### Added
+
+- Added an `Edit` action for saved domain lists so names and domains can be updated.
+- Added local persistence for unfinished blocked and allowed domain textarea drafts when the popup closes.
+
 ## [0.1.2]
 
 ### Added

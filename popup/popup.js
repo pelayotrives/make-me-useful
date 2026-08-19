@@ -10,6 +10,7 @@ const DEFAULT_CONFIG = {
   atomic: false,
 };
 const RESET_HOLD_MS = 45000;
+const DOMAIN_DRAFT_KEY = "make_me_useful_domain_draft";
 
 const elements = {
   rounds: document.querySelector("#roundsSelect"),
@@ -47,6 +48,7 @@ let holdStartAt = 0;
 let holdTimer = null;
 let domainLists = [];
 let domainListStatusTimer = null;
+let editingDomainListId = null;
 
 start();
 
@@ -56,6 +58,8 @@ async function start() {
   elements.atomic.addEventListener("change", renderGuardrails);
   elements.blockMode.addEventListener("change", handleGuardModeChange);
   elements.allowMode.addEventListener("change", handleGuardModeChange);
+  elements.domains.addEventListener("input", persistDomainDraft);
+  elements.allowedDomains.addEventListener("input", persistDomainDraft);
   elements.saveDomainList.addEventListener("click", saveDomainList);
   elements.domainLists.addEventListener("click", handleDomainListAction);
   document.addEventListener("pointerdown", dismissDomainListStatus, true);
@@ -73,6 +77,7 @@ async function start() {
   renderSchedule();
   await refreshDomainLists();
   await refreshState();
+  await restoreDomainDraft();
   refreshTimer = window.setInterval(refreshState, 1000);
 }
 
@@ -176,6 +181,34 @@ function handleGuardModeChange(event) {
     elements.allowedDomains.value = "";
   }
   renderGuardrails();
+  persistDomainDraft();
+}
+
+function persistDomainDraft() {
+  chrome.storage.local.set({
+    [DOMAIN_DRAFT_KEY]: {
+      domains: elements.domains.value,
+      allowedDomains: elements.allowedDomains.value,
+      domainMode: elements.allowMode.checked ? "allow" : "block",
+    },
+  }).catch(() => {});
+}
+
+async function restoreDomainDraft() {
+  if (currentState?.running) return;
+  try {
+    const stored = await chrome.storage.local.get(DOMAIN_DRAFT_KEY);
+    const draft = stored[DOMAIN_DRAFT_KEY];
+    if (!draft) return;
+    const isAllowed = draft.domainMode === "allow";
+    elements.allowMode.checked = isAllowed;
+    elements.blockMode.checked = !isAllowed;
+    elements.domains.value = typeof draft.domains === "string" ? draft.domains : elements.domains.value;
+    elements.allowedDomains.value = typeof draft.allowedDomains === "string" ? draft.allowedDomains : elements.allowedDomains.value;
+    renderGuardrails();
+  } catch {
+    // A missing draft should not prevent the popup from opening.
+  }
 }
 
 async function refreshDomainLists() {
@@ -207,13 +240,16 @@ async function saveDomainList() {
       name,
       domains,
       domainMode: elements.allowMode.checked ? "allow" : "block",
+      ...(editingDomainListId ? { id: editingDomainListId } : {}),
     });
     if (response?.error) {
       setDomainListStatus(response.error);
       return;
     }
     domainLists = response;
+    editingDomainListId = null;
     elements.domainListName.value = "";
+    elements.saveDomainList.textContent = "Save list";
     setDomainListStatus("List saved.");
     renderDomainLists();
   } catch (error) {
@@ -226,6 +262,21 @@ async function handleDomainListAction(event) {
   if (!button) return;
   const list = domainLists.find((item) => item.id === button.dataset.id);
   if (!list) return;
+  if (button.dataset.action === "edit") {
+    editingDomainListId = list.id;
+    const isAllowed = list.domainMode === "allow";
+    elements.allowMode.checked = isAllowed;
+    elements.blockMode.checked = !isAllowed;
+    elements.domains.value = isAllowed ? elements.domains.value : list.domains.join(", ");
+    elements.allowedDomains.value = isAllowed ? list.domains.join(", ") : elements.allowedDomains.value;
+    elements.domainListName.value = list.name;
+    elements.saveDomainList.textContent = "Update list";
+    renderGuardrails();
+    persistDomainDraft();
+    elements.domainListName.focus();
+    setDomainListStatus(`Editing ${list.name}.`);
+    return;
+  }
   if (button.dataset.action === "load") {
     const isAllowed = list.domainMode === "allow";
     elements.allowMode.checked = isAllowed;
@@ -233,12 +284,18 @@ async function handleDomainListAction(event) {
     renderGuardrails();
     const target = isAllowed ? elements.allowedDomains : elements.domains;
     target.value = list.domains.join(", ");
+    persistDomainDraft();
     setDomainListStatus(`Loaded ${list.name}.`);
     return;
   }
   if (button.dataset.action === "delete") {
     const response = await chrome.runtime.sendMessage({ type: "delete-domain-list", id: list.id });
     domainLists = Array.isArray(response) ? response : domainLists;
+    if (editingDomainListId === list.id) {
+      editingDomainListId = null;
+      elements.domainListName.value = "";
+      elements.saveDomainList.textContent = "Save list";
+    }
     setDomainListStatus("List deleted.");
     renderDomainLists();
   }
@@ -256,6 +313,7 @@ function renderDomainLists() {
       </div>
       <div class="domain-list-item__actions">
         <button class="button button--small button--primary" type="button" data-action="load" data-id="${escapeHtml(list.id)}">Load</button>
+        <button class="button button--small button--secondary" type="button" data-action="edit" data-id="${escapeHtml(list.id)}">Edit</button>
         <button class="button button--small button--secondary button--danger" type="button" data-action="delete" data-id="${escapeHtml(list.id)}">Delete</button>
       </div>`;
     elements.domainLists.appendChild(item);

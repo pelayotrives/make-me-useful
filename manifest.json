@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Make me useful",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Chain focused study timers, protect your attention, and take deliberate breaks.",
   "action": {
     "default_popup": "popup/popup.html",
